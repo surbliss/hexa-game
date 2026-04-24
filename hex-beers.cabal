@@ -19,10 +19,14 @@ common warnings
 executable hex-beers
     import:           warnings
     main-is:          Main.hs
-    -- other-modules:
+
+    other-modules:
+        GenServer, Server, Game
     -- other-extensions:
     build-depends:
         base ^>=4.20.2.0
         , containers
+        , websockets
+        , text
     hs-source-dirs:   app
     default-language: GHC2024

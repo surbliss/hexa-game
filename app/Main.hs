@@ -3,6 +3,8 @@
 module Main (main) where
 
 import Data.List (intersect, (\\))
+import Data.Text (pack)
+import Network.WebSockets
 
 ---------------------------------------------------
 -- The board
@@ -11,10 +13,9 @@ import Data.List (intersect, (\\))
 
 -- If sub-hex-array is shifted to the left or right
 data Shift = U | D deriving (Show, Eq)
+newtype Coordinate = Coord (Shift, Int, Int) deriving (Eq, Show)
 
 -- x +1 when going U -> D
-
-newtype Coordinate = Coord (Shift, Int, Int) deriving (Eq, Show)
 
 neighbours :: Coordinate -> [Coordinate]
 neighbours (Coord (s, c, r)) =
@@ -66,5 +67,11 @@ exampleHive =
     , (Coord (D, 2, 0), P, South)
     ]
 
+sendHello :: PendingConnection -> IO ()
+sendHello p = do
+  c <- acceptRequest p
+  sendTextData c (pack "hello mr bajar")
+
 main :: IO ()
-main = putStrLn "Hello, Haskell!"
+main = do
+  runServer "localhost" 9000 sendHello
