@@ -2,6 +2,7 @@
 <html>
 
 <head>
+  <link rel="icon" href="data:,">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title> Hexa-bajer </title>
   <style>
@@ -16,6 +17,9 @@
     use {
       fill: white;
       pointer-events: all;
+      stroke: black;
+      stroke-width: 1;
+      stroke-linejoin: round;
     }
   </style>
 </head>
@@ -29,8 +33,7 @@
     <defs>
       <!-- Source: http://www.w3.org/2000/svg -->
       <path id="piece" transform="scale(4) translate(-12, -12)"
-        d="M2.46148 12.8001C2.29321 12.5087 2.20908 12.3629 2.17615 12.208C2.14701 12.0709 2.14701 11.9293 2.17615 11.7922C2.20908 11.6373 2.29321 11.4915 2.46148 11.2001L6.53772 4.13984C6.70598 3.8484 6.79011 3.70268 6.90782 3.5967C7.01196 3.50293 7.13465 3.43209 7.26793 3.38879C7.41856 3.33984 7.58683 3.33984 7.92336 3.33984H16.0758C16.4124 3.33984 16.5806 3.33984 16.7313 3.38879C16.8645 3.43209 16.9872 3.50293 17.0914 3.5967C17.2091 3.70268 17.2932 3.8484 17.4615 4.13984L21.5377 11.2001C21.706 11.4915 21.7901 11.6373 21.823 11.7922C21.8522 11.9293 21.8522 12.0709 21.823 12.208C21.7901 12.3629 21.706 12.5087 21.5377 12.8001L17.4615 19.8604C17.2932 20.1518 17.2091 20.2975 17.0914 20.4035C16.9872 20.4973 16.8645 20.5681 16.7313 20.6114C16.5806 20.6604 16.4124 20.6604 16.0758 20.6604H7.92336C7.58683 20.6604 7.41856 20.6604 7.26793 20.6114C7.13465 20.5681 7.01196 20.4973 6.90782 20.4035C6.79011 20.2975 6.70598 20.1518 6.53772 19.8604L2.46148 12.8001Z"
-        stroke="#000000" stroke-width="1" stroke-linejoin="round" />
+        d="M2.46148 12.8001C2.29321 12.5087 2.20908 12.3629 2.17615 12.208C2.14701 12.0709 2.14701 11.9293 2.17615 11.7922C2.20908 11.6373 2.29321 11.4915 2.46148 11.2001L6.53772 4.13984C6.70598 3.8484 6.79011 3.70268 6.90782 3.5967C7.01196 3.50293 7.13465 3.43209 7.26793 3.38879C7.41856 3.33984 7.58683 3.33984 7.92336 3.33984H16.0758C16.4124 3.33984 16.5806 3.33984 16.7313 3.38879C16.8645 3.43209 16.9872 3.50293 17.0914 3.5967C17.2091 3.70268 17.2932 3.8484 17.4615 4.13984L21.5377 11.2001C21.706 11.4915 21.7901 11.6373 21.823 11.7922C21.8522 11.9293 21.8522 12.0709 21.823 12.208C21.7901 12.3629 21.706 12.5087 21.5377 12.8001L17.4615 19.8604C17.2932 20.1518 17.2091 20.2975 17.0914 20.4035C16.9872 20.4973 16.8645 20.5681 16.7313 20.6114C16.5806 20.6604 16.4124 20.6604 16.0758 20.6604H7.92336C7.58683 20.6604 7.41856 20.6604 7.26793 20.6114C7.13465 20.5681 7.01196 20.4973 6.90782 20.4035C6.79011 20.2975 6.70598 20.1518 6.53772 19.8604L2.46148 12.8001Z" />
     </defs>
 
     <g id="board">
@@ -51,75 +54,136 @@
 
 
   <script>
-    const board = document.getElementById("board");
+    const ids = Array.from({length: 12}, (_, i) => i) // 0 .. 11
+    const hexes = ids.map((id) => document.getElementById(String(id)));
+    // hexes.forEach((h) => h.style.display = "none");
+
     const sqrt3 = Math.sqrt(3);
     const getHexCoord = (x, y) => {
       const scale = 75;
       let newX = x / 2 * sqrt3;
       let newY = y + x / 2
-      return [newX * scale, newY * scale]
+      return [newX * scale, -newY * scale]
     };
-    board.setAttribute("transform", `translate(${window.innerWidth / 2}, ${window.innerHeight / 2})`);
-    const state = [
-      {pos: {x: 0, y: 0}, color: "white"},
-      {pos: {x: 0, y: 1}, color: "white"},
-      {pos: {x: 1, y: 0}, color: "white"},
-      {pos: {x: -1, y: 0}, color: "white"},
-      {pos: {x: -1, y: 1}, color: "white"},
-      {pos: {x: -1, y: -1}, color: "white"},
-      {pos: {x: 0, y: 0}, color: "white"},
-      {pos: {x: 0, y: 1}, color: "white"},
-      {pos: {x: 1, y: 0}, color: "white"},
-      {pos: {x: -1, y: 0}, color: "white"},
-      {pos: {x: -1, y: 1}, color: "white"},
-      {pos: {x: -1, y: -1}, color: "white"},
-    ];
-    const ids = Array.from({length: state.length}, (_, i) => i) // 0 .. 5
-    const hexes = {};
-    ids.forEach((id) => hexes[id] = document.getElementById(String(id)));
 
-    const renderHex = (id) => {
-      const h = hexes[id];
-      const s = state[id];
-      h.style.fill = s.color;
-      const [x, y] = getHexCoord(s.pos.x, s.pos.y);
-      h.setAttribute("transform", `translate(${x}, ${y})`)
-    };
-    let ws = new WebSocket("ws://localhost:9000");
-
-    const move = (id, x, y) => {
-      state[id].pos.x = x;
-      state[id].pos.y = y;
-      renderHex[id];
+    // Hex for 'indicator' (where to move):
+    const addIndicator = (x, y) => {
+      const [cx, cy] = getHexCoord(x, y);
+      const indicator = document.createElementNS("http://www.w3.org/2000/svg", "use");
+      indicator.setAttribute("href", "#piece");
+      indicator.setAttribute("transform", `translate(${cx}, ${cy})`);
+      indicator.style.fill = "rgba(173, 216, 230, 0.5)";
+      indicator.style.stroke = "rgba(173, 216, 230, 0.8)";
+      indicator.classList.add("indicator")
+      document.getElementById("board").appendChild(indicator)
     }
+    const removeIndicators = () => {
+      document.querySelectorAll(".indicator").forEach(el => el.remove());
+    }
+    const move = (args) => {
+      const [id, x, y] = args.map(Number);
+      const h = hexes[id];
+      const [newX, newY] = getHexCoord(x, y);
+      h.setAttribute("transform", `translate(${newX}, ${newY})`)
+      h.style.display = "";
+    }
+
+    move([0, 1, 1]);
+    move([1, 0, 1]);
+    move([2, 1, 0]);
+    move([3, -1, 1]);
+    move([4, 1, -1]);
+    move([5, 0, -1]);
+    move([6, -1, 0]);
+
+    addIndicator(0, 1)
+    addIndicator(1, 0)
+    addIndicator(-1, 1)
+    addIndicator(1, -1)
+    addIndicator(0, -1)
+    addIndicator(-1, 0)
+
+    // API for connecting with socket, i.e. commands possible to send:
+    // smsg = Message for sending
+    const smsgConnect = "connect";
+    const smsgShowMoves = "show-moves";
+    const smsgDoMoves = "do-move";
+    // rmsg = Message for recieving
+    const rmsgMove = "move";
+    const rmsgPlayerID = "player-id";
+
+    const ws = new WebSocket("ws://localhost:9000");
+    const send = (command, data) => ws.send(`${command} ${data}`)
+    // First, need to setup all hexes correctly.
+    ws.onopen = () => {
+      // Identifies the player, so you can refresh without killing the game
+      const token = localStorage.getItem("player-token") ?? "new";
+      send(smsgConnect, token);
+    };
+
+
     ws.onmessage = (msg) => {
       const [cmd, ...args] = msg.data.split(" ");
+      console.log(msg.data);
       switch (cmd) {
-        case "move": move(args.map(Number)); break;
+        case rmsgMove: move(args); break;
+        case rmsgPlayerID: localStorage.setItem("player-token", args[0]); break;
       }
     }
+
+    const board = document.getElementById("board");
+    board.setAttribute("transform", `translate(${window.innerWidth / 2}, ${window.innerHeight / 2})`);
+    const field = document.querySelector("svg");
+    // const state = [
+    // {pos: {x: 0, y: 0}, color: "white"},
+    // {pos: {x: 0, y: 1}, color: "white"},
+    // {pos: {x: 1, y: 0}, color: "white"},
+    // {pos: {x: -1, y: 0}, color: "white"},
+    // {pos: {x: -1, y: 1}, color: "white"},
+    // {pos: {x: -1, y: -1}, color: "white"},
+    // {pos: {x: 0, y: 0}, color: "white"},
+    // {pos: {x: 0, y: 1}, color: "white"},
+    // {pos: {x: 1, y: 0}, color: "white"},
+    // {pos: {x: -1, y: 0}, color: "white"},
+    // {pos: {x: -1, y: 1}, color: "white"},
+    // {pos: {x: -1, y: -1}, color: "white"},
+    // ];
+
+    // const renderHex = (id) => {
+    //   const h = hexes[id];
+    //   const s = state[id];
+    //   h.style.fill = s.color;
+    //   const [x, y] = getHexCoord(s.pos.x, s.pos.y);
+    //   h.setAttribute("transform", `translate(${x}, ${y})`)
+    // };
+
+
     // ws.onmessage = (e) => console.log(e.data);
 
-    ids.forEach((id) => {
-      const h = hexes[id];
-      const s = state[id];
-      renderHex(id);
-
-      // Events
-      h.addEventListener("click", () => {
-        console.log("Clicked!");
-        if (s.color === "lightskyblue") {
-          // ws.send("hello mr" + i);
-          s.color = "palevioletred";
-        } else {
-          // ws.send("now blue, sad" + i);
-          s.color = "lightskyblue";
-        };
-        s.pos.x += 1;
-        s.pos.y -= 1;
-        renderHex(id);
-      });
-    });
+    field.addEventListener("click", () => {
+      console.log("board clicked, wohoo")
+      removeIndicators();
+    })
+    // ids.forEach((id) => {
+      // const h = hexes[id];
+      // const s = state[id];
+      // renderHex(id);
+//
+      // // Events
+      // h.addEventListener("click", () => {
+        // console.log("Clicked!");
+        // if (s.color === "lightskyblue") {
+          // // ws.send("hello mr" + i);
+          // s.color = "palevioletred";
+        // } else {
+          // // ws.send("now blue, sad" + i);
+          // s.color = "lightskyblue";
+        // };
+        // s.pos.x += 1;
+        // s.pos.y -= 1;
+        // renderHex(id);
+      // });
+    // });
   </script>
 </body>
 
