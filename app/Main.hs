@@ -8,4 +8,4 @@ main :: IO ()
 main = do
   gameState <- initGameState
   gameServer <- spawn (handleServerMessage gameState)
-  runServer "localhost" 9000 (socketApp gameServer)
+  runServer "0.0.0.0" 9000 (socketApp gameServer)

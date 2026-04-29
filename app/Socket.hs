@@ -3,6 +3,7 @@
 module Socket where
 
 import Network.WebSockets (
+  Connection,
   PendingConnection,
   acceptRequest,
   receiveData,
@@ -10,10 +11,12 @@ import Network.WebSockets (
  )
 
 import Control.Monad (forever)
+import Data.List (intercalate)
 import Data.Text (Text, splitOn, unpack)
 import Data.Text qualified as T
 import Data.Vector (Vector, (//))
 import Data.Vector qualified as V
+import Debug.Trace (trace, traceShowId)
 import GenServer
 
 type GameServer = Server ServerMessage
@@ -21,13 +24,20 @@ type PlayerChan = Chan ClientMessage -- Message back to the client
 type Piece = Int
 type Coordinate = (Int, Int, Int)
 
+echo :: String -> IO ()
+echo s = putStrLn $ "INFO: " <> s
+
+bug :: (Show a) => a -> b
+bug x = error $ "BUG: " <> (show x)
+
 data Player
   = Player1
   | Player2
   | Spectator
 
 data ServerMessage
-  = SNewPlayer Text (ReplyChan (Player, PlayerChan))
+  = -- = SNewPlayer Text (ReplyChan (Player, PlayerChan))
+    SInitPlayer Text (ReplyChan (PlayerChan, Player, Vector (Maybe Coordinate)))
   | SClickPiece Player Piece
 
 data GameMessage
@@ -36,6 +46,8 @@ data GameMessage
 data ClientMessage
   = CPlayerToken Player
   | CHello Piece -- Tmp, for testing
+  | CInitPiecePositions [(Piece, Coordinate)]
+  | CInitPlayer Player (Vector (Maybe Coordinate))
 
 data GameState = GameState
   { player1 :: PlayerChan
@@ -53,7 +65,7 @@ initGameState = do
       { player1 = c1
       , player2 = c2
       , spectators = c3
-      , pieces = V.replicate 11 Nothing // [(2, Just (1, 1, 0))]
+      , pieces = V.replicate 11 Nothing // [(2, Just (0, 1, 0))]
       }
 
 socketApp :: GameServer -> PendingConnection -> IO ()
@@ -61,24 +73,31 @@ socketApp gameServer pendingConnection = do
   con <- acceptRequest pendingConnection
   -- Get player info (must be 'connect ...')
   text <- receiveData con
-  (player, outChan) <- case splitOn " " text of
+  (outChan, player, pieces) <- case splitOn " " text of
     ["connect", token] -> do
-      requestReply gameServer $ SNewPlayer token
-    other -> error $ "Invalid first message: " <> concat (map unpack other)
-  sendTextData con (encodeMessage $ CPlayerToken player)
+      requestReply gameServer $ SInitPlayer token
+    _ -> bug text
   _ <- forkIO $ forever $ do
     msg <- readChan outChan
-    let textMsg = encodeMessage msg
-    print textMsg
-    sendTextData con (encodeMessage msg)
+    sendTextData con (traceShowId $ encodeMessage msg)
+  sendTextData con (encodeMessage $ CInitPlayer player pieces)
+  confirmConnection con
+  -- Initial thread, for confirming the connection
   forever $ do
     (msg :: Text) <- receiveData con
     serverSend gameServer (parseMessage player msg)
 
+confirmConnection :: Connection -> IO ()
+confirmConnection con = do
+  (text :: Text) <- receiveData con
+  case traceShowId text of
+    "setup done" -> echo "Setup finished" >> pure ()
+    other -> trace ("Wrong first message: " <> show other) confirmConnection con
+
 parseMessage :: Player -> Text -> ServerMessage
 parseMessage player text = case splitOn " " text of
   ["click", i] -> SClickPiece player (read (unpack i))
-  other -> error $ "Invalid message send by client: " <> concat (map unpack other)
+  other -> bug other
 
 encodeMessage :: ClientMessage -> Text
 encodeMessage msg = case msg of
@@ -86,6 +105,23 @@ encodeMessage msg = case msg of
   CPlayerToken Player2 -> "player-id 2"
   CPlayerToken Spectator -> "player-id s"
   CHello i -> "hello " <> T.show i
+  CInitPiecePositions xs -> T.intercalate " " ("piece-positions" : map showPiece xs)
+  CInitPlayer player xs -> T.intercalate " " ["init", playerToId player, packPieces xs]
+
+playerToId :: Player -> Text
+playerToId Player1 = "1"
+playerToId Player2 = "2"
+playerToId Spectator = "s"
+
+packPieces :: Vector (Maybe Coordinate) -> Text
+packPieces xs = text
+ where
+  validPiece (i, Just coord) = Just $ showPiece (i, coord)
+  validPiece (_, Nothing) = Nothing
+  valids = V.mapMaybe validPiece $ V.indexed xs
+  text = T.intercalate " " (V.toList valids)
+showPiece :: (Piece, Coordinate) -> Text
+showPiece (i, (x, y, z)) = T.pack $ intercalate "," $ map show $ [i, x, y, z]
 
 handleServerMessage :: GameState -> Chan ServerMessage -> IO ()
 handleServerMessage state chan = do
@@ -96,21 +132,20 @@ handleServerMessage state chan = do
 handleServerMessage' :: GameState -> ServerMessage -> IO GameState
 handleServerMessage' state msg = do
   case msg of
-    SNewPlayer text rc -> do
-      serverReply rc $ case text of
-        "new" -> (Player1, player1 state) -- TODO: Add check if player 1 already added
-        "1" -> (Player1, player1 state)
-        "2" -> (Player2, player2 state)
-        "s" -> (Spectator, spectators state)
-        other -> error $ "Invalid player token: " <> unpack other
+    SInitPlayer text rc -> do
+      let
+      serverReply rc (c, p, pieces state)
       pure state
+     where
+      (c, p) = case text of
+        "new" -> (player1 state, Player1) -- TODO: Add check if player 1 already added
+        "1" -> (player1 state, Player1)
+        "2" -> (player2 state, Player2)
+        "s" -> (spectators state, Spectator)
+        other -> error $ "Invalid player token: " <> unpack other
     SClickPiece p i -> do
       writeChan (getPlayerChan p state) (CHello i)
       pure state
-
--- SClickPiece p i -> writeChan undefined (getPlayerChan p state)
-printTextError :: [Text] -> a
-printTextError xs = error $ "Invalid msg: " <> concat (map unpack xs)
 
 getPlayerChan :: Player -> GameState -> PlayerChan
 getPlayerChan Player1 = player1
