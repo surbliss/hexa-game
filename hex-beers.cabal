@@ -21,12 +21,13 @@ executable hex-beers
     main-is:          Main.hs
 
     other-modules:
-        GenServer, Server, Game
+        GenServer, Socket, Game
     -- other-extensions:
     build-depends:
         base ^>=4.20.2.0
         , containers
         , websockets
         , text
+        , vector
     hs-source-dirs:   app
     default-language: GHC2024

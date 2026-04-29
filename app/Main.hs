@@ -1,17 +1,11 @@
-{-# OPTIONS_GHC -Wno-unused-top-binds #-}
-
 module Main (main) where
 
-import Data.Text (Text, pack)
+import GenServer
 import Network.WebSockets
-
-sendHello :: PendingConnection -> IO ()
-sendHello p = do
-  c <- acceptRequest p
-  (resp :: Text) <- receiveData c
-  print resp
-  sendTextData c (pack "hello mr bajar")
+import Socket
 
 main :: IO ()
 main = do
-  runServer "localhost" 9000 sendHello
+  gameState <- initGameState
+  gameServer <- spawn (handleServerMessage gameState)
+  runServer "localhost" 9000 (socketApp gameServer)

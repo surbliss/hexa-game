@@ -59,16 +59,16 @@
     // hexes.forEach((h) => h.style.display = "none");
 
     const sqrt3 = Math.sqrt(3);
-    const getHexCoord = (x, y) => {
+    const getHexCoord = (x, y, z) => {
       const scale = 75;
-      let newX = x / 2 * sqrt3;
-      let newY = y + x / 2
+      let newX = x / 2 * sqrt3 + z * 0.05;
+      let newY = y + x / 2 + z * 0.07
       return [newX * scale, -newY * scale]
     };
 
     // Hex for 'indicator' (where to move):
     const addIndicator = (x, y) => {
-      const [cx, cy] = getHexCoord(x, y);
+      const [cx, cy] = getHexCoord(x, y, 0);
       const indicator = document.createElementNS("http://www.w3.org/2000/svg", "use");
       indicator.setAttribute("href", "#piece");
       indicator.setAttribute("transform", `translate(${cx}, ${cy})`);
@@ -81,20 +81,21 @@
       document.querySelectorAll(".indicator").forEach(el => el.remove());
     }
     const move = (args) => {
-      const [id, x, y] = args.map(Number);
+      const [id, x, y, z] = args.map(Number);
       const h = hexes[id];
-      const [newX, newY] = getHexCoord(x, y);
+      const [newX, newY, newZ] = getHexCoord(x, y, z);
       h.setAttribute("transform", `translate(${newX}, ${newY})`)
       h.style.display = "";
+      if (z > 0) board.appendChild(h);
     }
 
-    move([0, 1, 1]);
-    move([1, 0, 1]);
-    move([2, 1, 0]);
-    move([3, -1, 1]);
-    move([4, 1, -1]);
-    move([5, 0, -1]);
-    move([6, -1, 0]);
+    move([0, 1, 1, 0]);
+    move([1, 0, 1, 0]);
+    move([2, 1, 0, 0]);
+    move([3, -1, 1, 0]);
+    move([4, 1, -1, 0]);
+    move([5, 0, -1, 0]);
+    move([6, -1, 0, 0]);
 
     addIndicator(0, 1)
     addIndicator(1, 0)
@@ -106,11 +107,12 @@
     // API for connecting with socket, i.e. commands possible to send:
     // smsg = Message for sending
     const smsgConnect = "connect";
-    const smsgShowMoves = "show-moves";
-    const smsgDoMoves = "do-move";
+    const smsgClick = "click" // click i
+    const smsgClickIndicator = "click-indicator" // click i
     // rmsg = Message for recieving
     const rmsgMove = "move";
-    const rmsgPlayerID = "player-id";
+    const rmsgPlayerId = "player-id";
+    const rmsgHello = "hello" // hello i
 
     const ws = new WebSocket("ws://localhost:9000");
     const send = (command, data) => ws.send(`${command} ${data}`)
@@ -124,66 +126,30 @@
 
     ws.onmessage = (msg) => {
       const [cmd, ...args] = msg.data.split(" ");
-      console.log(msg.data);
       switch (cmd) {
         case rmsgMove: move(args); break;
-        case rmsgPlayerID: localStorage.setItem("player-token", args[0]); break;
+        case rmsgPlayerId: {
+          localStorage.setItem("player-token", args[0]);
+          console.log(`Got token ${args[0]}`);
+          break;
+        }
+        case rmsgHello: console.log(`Hello from ${args[0]}!`); break;
       }
     }
 
     const board = document.getElementById("board");
+    window.addEventListener("resize", () => board.setAttribute(
+      "transform", `translate(${window.innerWidth / 2}, ${window.innerHeight / 2})`
+    ));
+
     board.setAttribute("transform", `translate(${window.innerWidth / 2}, ${window.innerHeight / 2})`);
     const field = document.querySelector("svg");
-    // const state = [
-    // {pos: {x: 0, y: 0}, color: "white"},
-    // {pos: {x: 0, y: 1}, color: "white"},
-    // {pos: {x: 1, y: 0}, color: "white"},
-    // {pos: {x: -1, y: 0}, color: "white"},
-    // {pos: {x: -1, y: 1}, color: "white"},
-    // {pos: {x: -1, y: -1}, color: "white"},
-    // {pos: {x: 0, y: 0}, color: "white"},
-    // {pos: {x: 0, y: 1}, color: "white"},
-    // {pos: {x: 1, y: 0}, color: "white"},
-    // {pos: {x: -1, y: 0}, color: "white"},
-    // {pos: {x: -1, y: 1}, color: "white"},
-    // {pos: {x: -1, y: -1}, color: "white"},
-    // ];
-
-    // const renderHex = (id) => {
-    //   const h = hexes[id];
-    //   const s = state[id];
-    //   h.style.fill = s.color;
-    //   const [x, y] = getHexCoord(s.pos.x, s.pos.y);
-    //   h.setAttribute("transform", `translate(${x}, ${y})`)
-    // };
-
-
-    // ws.onmessage = (e) => console.log(e.data);
 
     field.addEventListener("click", () => {
-      console.log("board clicked, wohoo")
       removeIndicators();
-    })
-    // ids.forEach((id) => {
-      // const h = hexes[id];
-      // const s = state[id];
-      // renderHex(id);
-//
-      // // Events
-      // h.addEventListener("click", () => {
-        // console.log("Clicked!");
-        // if (s.color === "lightskyblue") {
-          // // ws.send("hello mr" + i);
-          // s.color = "palevioletred";
-        // } else {
-          // // ws.send("now blue, sad" + i);
-          // s.color = "lightskyblue";
-        // };
-        // s.pos.x += 1;
-        // s.pos.y -= 1;
-        // renderHex(id);
-      // });
-    // });
+    });
+
+    ids.forEach((id) => hexes[id].addEventListener("click", () => send(smsgClick, id)));
   </script>
 </body>
 

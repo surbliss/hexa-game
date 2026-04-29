@@ -4,14 +4,16 @@ module GenServer (
   Server,
   writeChan,
   readChan,
-  send,
+  serverSend,
   spawn,
   ReplyChan,
   requestReply,
-  reply,
+  serverReply,
+  newChan,
   forkIO,
   killThread,
   threadDelay,
+  ThreadId,
 )
 where
 
@@ -36,14 +38,14 @@ spawn serverLoop = do
   tid <- forkIO $ serverLoop input
   return $ Server tid input
 
-send :: Server a -> a -> IO ()
-send (Server _tid input) msg = writeChan input msg
+serverSend :: Server a -> a -> IO ()
+serverSend (Server _tid input) msg = writeChan input msg
 
-reply :: ReplyChan a -> a -> IO ()
-reply (ReplyChan chan) x = writeChan chan x
+serverReply :: ReplyChan a -> a -> IO ()
+serverReply (ReplyChan chan) x = writeChan chan x
 
 requestReply :: Server a -> (ReplyChan b -> a) -> IO b
 requestReply serv con = do
   reply_chan <- newChan
-  send serv $ con $ ReplyChan reply_chan
+  serverSend serv $ con $ ReplyChan reply_chan
   readChan reply_chan

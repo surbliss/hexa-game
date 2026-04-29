@@ -29,6 +29,11 @@
         help = "cabal run";
         command = "cabal run";
       }
+      {
+        name = "w";
+        help = "server + watch cabal run";
+        command = "npx live-server --no-browser static & watchexec -e hs --restart cabal run";
+      }
     ];
   };
 
