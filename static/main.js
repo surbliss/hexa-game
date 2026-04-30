@@ -3,7 +3,6 @@
 const smsgConnect = "connect"
 const smsgClick = "click" // click i
 const smsgClickIndicator = "click-indicator" // click i
-const smsgSetupDone = "setup-done"
 // rmsg = Message for recieving
 const rmsgMove = "move"
 const rmsgHello = "hello" // hello i
@@ -59,7 +58,6 @@ const connect = () => {
 				args.slice(1).forEach((a) => {
 					move(getNums(a))
 				})
-				send(smsgSetupDone, args[0])
 				break
 			}
 			default:

@@ -30,7 +30,9 @@ import Control.Concurrent (
 
 data Server msg = Server ThreadId (Chan msg)
 
-newtype ReplyChan a = ReplyChan (Chan a)
+newtype ReplyChan a = ReplyChan (Chan a) deriving (Eq)
+instance Show (ReplyChan a) where
+  show (ReplyChan _) = "ReplyChan (..)"
 
 spawn :: (Chan a -> IO ()) -> IO (Server a)
 spawn serverLoop = do

@@ -1,4 +1,4 @@
-module Game where
+module Game.Logic where
 
 import Data.List (intersect, (\\))
 

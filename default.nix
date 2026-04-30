@@ -35,6 +35,11 @@
         help = "server + watch cabal run";
         command = "npx live-server --no-browser static & watchexec -e hs --restart cabal run";
       }
+      {
+        name = "re";
+        help = "direnv reload (after default.nix changes)";
+        command = "direnv reload";
+      }
     ];
   };
 

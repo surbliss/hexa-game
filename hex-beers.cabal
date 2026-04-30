@@ -21,7 +21,7 @@ executable hex-beers
     main-is:          Main.hs
 
     other-modules:
-        GenServer, Socket, Game
+        Util, GenServer, Game.Logic, Game.Protocol, Game.Server, Game.Socket,
     -- other-extensions:
     build-depends:
         base ^>=4.20.2.0
