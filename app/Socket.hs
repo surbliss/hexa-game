@@ -45,6 +45,7 @@ data GameMessage
 data ClientMessage
   = CHello Piece -- Tmp, for testing
   | CInitPlayer Player (Vector (Maybe Coordinate))
+  | CMovePiece (Piece, Coordinate)
 
 data GameState = GameState
   { player1 :: PlayerChan
@@ -87,8 +88,8 @@ socketApp gameServer pendingConnection = do
 confirmConnection :: Connection -> IO ()
 confirmConnection con = do
   (text :: Text) <- receiveData con
-  case traceShowId text of
-    "setup-done " -> echo "Setup finished" >> pure ()
+  case traceShowId (T.splitOn " " text) of
+    ["setup-done", i] -> echo ("Setup finished for player " <> T.unpack i) >> pure ()
     other -> trace ("Wrong first message: " <> show other) confirmConnection con
 
 parseMessage :: Player -> Text -> ServerMessage
@@ -100,6 +101,7 @@ encodeMessage :: ClientMessage -> Text
 encodeMessage msg = case msg of
   CHello i -> "hello " <> T.show i
   CInitPlayer player xs -> T.intercalate " " ["init", playerToId player, packPieces xs]
+  CMovePiece piec -> "move " <> showPiece piec
 
 playerToId :: Player -> Text
 playerToId Player1 = "1"
@@ -137,8 +139,11 @@ handleServerMessage' state msg = do
         "s" -> (spectators state, Spectator)
         other -> error $ "Invalid player token: " <> unpack other
     SClickPiece p i -> do
-      writeChan (getPlayerChan p state) (CHello i)
-      pure state
+      let
+        newPos = (-2, 2, 0)
+        newState = state{pieces = pieces state // [(i, Just newPos)]}
+      writeChan (getPlayerChan p state) (CMovePiece (i, newPos))
+      pure newState
 
 getPlayerChan :: Player -> GameState -> PlayerChan
 getPlayerChan Player1 = player1
