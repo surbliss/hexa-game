@@ -13,9 +13,10 @@
     packages = with pkgs; [
       nodejs
       python3
-      vscode-langservers-extracted
       superhtml
       typescript-language-server
+      biome
+
     ];
 
     commands = [

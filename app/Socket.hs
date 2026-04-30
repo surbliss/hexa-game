@@ -10,11 +10,12 @@ import Network.WebSockets (
   sendTextData,
  )
 
+import Control.Concurrent (dupChan)
 import Control.Monad (forever)
 import Data.List (intercalate)
 import Data.Text (Text, splitOn, unpack)
 import Data.Text qualified as T
-import Data.Vector (Vector, (//))
+import Data.Vector (Vector, (!), (//))
 import Data.Vector qualified as V
 import Debug.Trace (trace, traceShowId)
 import GenServer
@@ -22,6 +23,7 @@ import GenServer
 type GameServer = Server ServerMessage
 type PlayerChan = Chan ClientMessage -- Message back to the client
 type Piece = Int
+type Indicator = Int
 type Coordinate = (Int, Int, Int)
 
 echo :: String -> IO ()
@@ -40,18 +42,21 @@ data ServerMessage
   | SClickPiece Player Piece
 
 data GameMessage
-  = GReqPiecePositions (ReplyChan ([(Piece, Coordinate)]))
+  = GPiecePositions (ReplyChan ([(Piece, Coordinate)]))
+  | GValidMoves (ReplyChan [Coordinate])
 
 data ClientMessage
   = CHello Piece -- Tmp, for testing
   | CInitPlayer Player (Vector (Maybe Coordinate))
   | CMovePiece (Piece, Coordinate)
+  | CShowIndicators [Coordinate] -- TODO: Add ID Indicators too!
 
 data GameState = GameState
   { player1 :: PlayerChan
   , player2 :: PlayerChan
   , spectators :: PlayerChan -- Just dup this, if more added
   , pieces :: Vector (Maybe (Int, Int, Int))
+  , indicators :: Maybe (Piece, [Coordinate]) -- What piece do the indicators belong to?
   }
 initGameState :: IO GameState
 initGameState = do
@@ -63,7 +68,8 @@ initGameState = do
       { player1 = c1
       , player2 = c2
       , spectators = c3
-      , pieces = V.replicate 11 Nothing // [(2, Just (0, 1, 0))]
+      , pieces = V.replicate 11 Nothing // [(2, Just (0, 1, 0)), (1, Just (1, -1, 0))]
+      , indicators = Nothing
       }
 
 socketApp :: GameServer -> PendingConnection -> IO ()
@@ -102,6 +108,7 @@ encodeMessage msg = case msg of
   CHello i -> "hello " <> T.show i
   CInitPlayer player xs -> T.intercalate " " ["init", playerToId player, packPieces xs]
   CMovePiece piec -> "move " <> showPiece piec
+  CShowIndicators xs -> "show-indicators " <> T.intercalate " " (map showIndicator xs)
 
 playerToId :: Player -> Text
 playerToId Player1 = "1"
@@ -115,8 +122,12 @@ packPieces xs = text
   validPiece (_, Nothing) = Nothing
   valids = V.mapMaybe validPiece $ V.indexed xs
   text = T.intercalate " " (V.toList valids)
+
 showPiece :: (Piece, Coordinate) -> Text
 showPiece (i, (x, y, z)) = T.pack $ intercalate "," $ map show $ [i, x, y, z]
+
+showIndicator :: Coordinate -> Text
+showIndicator (x, y, z) = T.pack $ show x <> "," <> show y <> "," <> show z
 
 handleServerMessage :: GameState -> Chan ServerMessage -> IO ()
 handleServerMessage state chan = do
@@ -128,8 +139,8 @@ handleServerMessage' :: GameState -> ServerMessage -> IO GameState
 handleServerMessage' state msg = do
   case msg of
     SInitPlayer text rc -> do
-      let
-      serverReply rc (c, p, pieces state)
+      dc <- dupChan c -- NOTE: Remove when only one connection pr. player is enforced
+      serverReply rc (dc, p, pieces state)
       pure state
      where
       (c, p) = case text of
@@ -140,10 +151,20 @@ handleServerMessage' state msg = do
         other -> error $ "Invalid player token: " <> unpack other
     SClickPiece p i -> do
       let
-        newPos = (-2, 2, 0)
-        newState = state{pieces = pieces state // [(i, Just newPos)]}
-      writeChan (getPlayerChan p state) (CMovePiece (i, newPos))
-      pure newState
+        ps = pieces state
+        (x, y) = case ps ! i of
+          Just (x', y', _) -> (x', y')
+          Nothing -> error "clicked non-existing piece, gg"
+        surroundingPos =
+          [ (x, y + 1, 0)
+          , (x, y - 1, 0)
+          , (x + 1, y, 0)
+          , (x - 1, y, 0)
+          , (x + 1, y - 1, 0)
+          , (x - 1, y + 1, 0)
+          ]
+      writeChan (getPlayerChan p state) (CShowIndicators surroundingPos)
+      pure $ state{indicators = Just (i, surroundingPos)}
 
 getPlayerChan :: Player -> GameState -> PlayerChan
 getPlayerChan Player1 = player1

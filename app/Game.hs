@@ -2,6 +2,8 @@ module Game where
 
 import Data.List (intersect, (\\))
 
+--- Stateless game logic
+
 ---------------------------------------------------
 -- The board
 ---------------------------------------------------
