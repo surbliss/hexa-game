@@ -36,17 +36,14 @@ data Player
   | Spectator
 
 data ServerMessage
-  = -- = SNewPlayer Text (ReplyChan (Player, PlayerChan))
-    SInitPlayer Text (ReplyChan (PlayerChan, Player, Vector (Maybe Coordinate)))
+  = SInitPlayer Text (ReplyChan (PlayerChan, Player, Vector (Maybe Coordinate)))
   | SClickPiece Player Piece
 
 data GameMessage
   = GReqPiecePositions (ReplyChan ([(Piece, Coordinate)]))
 
 data ClientMessage
-  = CPlayerToken Player
-  | CHello Piece -- Tmp, for testing
-  | CInitPiecePositions [(Piece, Coordinate)]
+  = CHello Piece -- Tmp, for testing
   | CInitPlayer Player (Vector (Maybe Coordinate))
 
 data GameState = GameState
@@ -91,7 +88,7 @@ confirmConnection :: Connection -> IO ()
 confirmConnection con = do
   (text :: Text) <- receiveData con
   case traceShowId text of
-    "setup done" -> echo "Setup finished" >> pure ()
+    "setup-done " -> echo "Setup finished" >> pure ()
     other -> trace ("Wrong first message: " <> show other) confirmConnection con
 
 parseMessage :: Player -> Text -> ServerMessage
@@ -101,11 +98,7 @@ parseMessage player text = case splitOn " " text of
 
 encodeMessage :: ClientMessage -> Text
 encodeMessage msg = case msg of
-  CPlayerToken Player1 -> "player-id 1"
-  CPlayerToken Player2 -> "player-id 2"
-  CPlayerToken Spectator -> "player-id s"
   CHello i -> "hello " <> T.show i
-  CInitPiecePositions xs -> T.intercalate " " ("piece-positions" : map showPiece xs)
   CInitPlayer player xs -> T.intercalate " " ["init", playerToId player, packPieces xs]
 
 playerToId :: Player -> Text

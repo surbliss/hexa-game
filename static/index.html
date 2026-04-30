@@ -59,12 +59,10 @@
     const smsgConnect = "connect";
     const smsgClick = "click" // click i
     const smsgClickIndicator = "click-indicator" // click i
-    const smsgSetup = "setup"
+    const smsgSetupDone = "setup-done"
     // rmsg = Message for recieving
     const rmsgMove = "move";
-    const rmsgPlayerId = "player-id";
     const rmsgHello = "hello" // hello i
-    const rmsgInitPositions = "piece-positions" // piece-positions 1,0,2,0 2,-1,3,1 ...
     const rmsgInit = "init" // init _player-id_ _pos1_ _pos2_ ...
 
     const ids = Array.from({length: 12}, (_, i) => i) // 0 .. 11
@@ -103,14 +101,6 @@
       if (z > 0) board.appendChild(h);
     }
 
-    // move([0, 1, 1, 0]);
-    // move([1, 0, 1, 0]);
-    // move([2, 1, 0, 0]);
-    // move([3, -1, 1, 0]);
-    // move([4, 1, -1, 0]);
-    // move([5, 0, -1, 0]);
-    // move([6, -1, 0, 0]);
-
     addIndicator(0, 1)
     addIndicator(1, 0)
     addIndicator(-1, 1)
@@ -139,7 +129,7 @@
           console.log(args)
           localStorage.setItem("player-token", args[0])
           args.slice(1).forEach((a) => move(a.split(",").map(Number)));
-          send(smsgSetup, "done");
+          send(smsgSetupDone, "");
           break;
         };
         default: console.log("oh no:"); console.log(msg.data); break;
