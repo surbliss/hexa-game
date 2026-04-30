@@ -15,7 +15,7 @@ let send = () => {} // Override inside the 'connect' closure
 const connect = () => {
 	// Helper function for comma-delimited numbers
 	const getNums = (s) => s.split(",").map(Number)
-	const ws = new WebSocket("ws://192.168.0.60:9000")
+	const ws = new WebSocket("ws://192.168.0.100:9000")
 	send = (command, data) => {
 		ws.send(`${command} ${data}`)
 	}
@@ -42,9 +42,12 @@ const connect = () => {
 				break
 			case rmsgShowIndicators: {
 				removeIndicators()
+				let i = 0
 				args.forEach((a) => {
 					const [x, y, z] = getNums(a)
-					addIndicator(x, y, z)
+					// TODO: Make index vary (one for each entry)
+					addIndicator(i, x, y, z)
+					i += 1
 				})
 				break
 			}
@@ -71,8 +74,11 @@ const connect = () => {
 connect()
 
 const ids = Array.from({ length: 12 }, (_, i) => i) // 0 .. 11
-const hexes = ids.map((id) => document.getElementById(String(id)))
-hexes.forEach((h) => {
+const pieceId = (id) => `piece-${id}`
+const indicatorId = (id) => `indicator-${id}`
+const pieces = ids.map((id) => document.getElementById(pieceId(id)))
+
+pieces.forEach((h) => {
 	h.style.display = "none"
 })
 
@@ -84,8 +90,9 @@ const getHexCoord = (x, y, z) => {
 	return [newX * scale, -newY * scale]
 }
 
-// Hex for 'indicator' (where to move):
-const addIndicator = (x, y, z) => {
+// Hex for 'indicator' (where to move). Need ID too!:
+const board = document.getElementById("board")
+const addIndicator = (i, x, y, z) => {
 	const [cx, cy] = getHexCoord(x, y, z)
 	const indicator = document.createElementNS(
 		"http://www.w3.org/2000/svg",
@@ -93,10 +100,16 @@ const addIndicator = (x, y, z) => {
 	)
 	indicator.setAttribute("href", "#piece")
 	indicator.setAttribute("transform", `translate(${cx}, ${cy})`)
+	indicator.setAttribute("id", indicatorId(i))
 	indicator.style.fill = "rgba(173, 216, 230, 0.5)"
 	indicator.style.stroke = "rgba(173, 216, 230, 0.8)"
 	indicator.classList.add("indicator")
-	document.getElementById("board").appendChild(indicator)
+	board.appendChild(indicator)
+	indicator.addEventListener("click", (e) => {
+		e.stopPropagation()
+		removeIndicators()
+		send(smsgClickIndicator, i)
+	})
 }
 const removeIndicators = () => {
 	document.querySelectorAll(".indicator").forEach((el) => {
@@ -105,16 +118,16 @@ const removeIndicators = () => {
 }
 
 const move = (args) => {
+	removeIndicators()
 	const [id, x, y, z] = args.map(Number)
 	console.log(args.map(Number))
-	const h = hexes[id]
+	const h = pieces[id]
 	const [newX, newY] = getHexCoord(x, y, z)
 	h.setAttribute("transform", `translate(${newX}, ${newY})`)
 	h.style.display = ""
 	if (z > 0) board.appendChild(h)
 }
 
-const board = document.getElementById("board")
 window.addEventListener("resize", () =>
 	board.setAttribute(
 		"transform",
@@ -129,7 +142,7 @@ board.setAttribute(
 const field = document.querySelector("svg")
 
 ids.forEach((id) => {
-	hexes[id].addEventListener("click", (e) => {
+	pieces[id].addEventListener("click", (e) => {
 		e.stopPropagation()
 		send(smsgClick, id)
 	})

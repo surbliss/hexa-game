@@ -11,7 +11,6 @@ import GenServer
 import Util
 
 -- Module datatypes shared across the Socket and GameServer
-type PlayerChan = Chan ClientMessage -- Message back to the client
 data ClientMessage
   = CHello Piece -- Tmp, for testing
   | CInitPlayer Player (Vector (Maybe Coordinate))
@@ -22,9 +21,11 @@ data ClientMessage
 type GameServer = Server ServerMessage
 type Indicator = Int
 
+type PlayerChan = Chan ClientMessage -- Message back to the client
 data ServerMessage
   = SRegisterPlayer String (ReplyChan (PlayerChan, Player, Vector (Maybe Coordinate)))
   | SClickPiece Player Piece
+  | SClickIndicator Player Piece
   deriving (Eq, Show)
 
 type Piece = Int
@@ -35,16 +36,6 @@ data Player
   deriving (Eq, Show)
 
 type Coordinate = (Int, Int, Int)
-
--- Could consider name 'ServerState' instead, reserving 'GameState' name for non-server-related state
-data GameState = GameState
-  { player1 :: PlayerChan
-  , player2 :: PlayerChan
-  , spectators :: PlayerChan -- Just dup this, if more added
-  , pieces :: Vector (Maybe (Int, Int, Int))
-  , indicators :: Maybe (Piece, [Coordinate]) -- What piece do the indicators belong to?
-  }
-  deriving (Eq)
 
 --- Helper-class to convert to/from JS message-format
 class Encodable a where
@@ -80,4 +71,5 @@ instance Encodable (Vector (Maybe Coordinate)) where
 parseServerMessage :: Player -> Text -> ServerMessage
 parseServerMessage player text = case T.splitOn " " text of
   ["click", i] -> SClickPiece player (read (T.unpack i))
+  ["click-indicator", i] -> SClickIndicator player (read (T.unpack i))
   other -> bug other
