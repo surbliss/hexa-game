@@ -33,7 +33,7 @@ initGameState = do
       { player1 = c1
       , player2 = c2
       , spectators = c3
-      , pieces = V.replicate 11 Nothing // [(2, Just (0, 1, 0)), (1, Just (1, -1, 0))]
+      , pieces = V.replicate 22 Nothing
       , indicators = Nothing
       }
 
@@ -63,15 +63,17 @@ handleServerMessage' state msg = case msg of
     ps = pieces state
     (x, y) = case ps ! i of
       Just (x', y', _) -> (x', y')
-      Nothing -> error "clicked non-existing piece, gg"
-    surroundingPos =
-      [ (x, y + 1, 0)
-      , (x, y - 1, 0)
-      , (x + 1, y, 0)
-      , (x - 1, y, 0)
-      , (x + 1, y - 1, 0)
-      , (x - 1, y + 1, 0)
-      ]
+      Nothing -> (0, 0) -- TODO: Place around available pieces
+    surroundingPos = case ps ! i of
+      Just _ ->
+        [ (x, y + 1, 0)
+        , (x, y - 1, 0)
+        , (x + 1, y, 0)
+        , (x - 1, y, 0)
+        , (x + 1, y - 1, 0)
+        , (x - 1, y + 1, 0)
+        ]
+      Nothing -> [(0, 0, 0)]
   SClickIndicator p i -> case indicators state of
     Nothing -> error "No indicators stored, rip"
     Just (pid, cs) -> do

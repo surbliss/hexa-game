@@ -10,9 +10,35 @@ const rmsgInit = "init" // init _player-id_ _pos1_ _pos2_ ...
 /// TODO: Indicators need an ID also, so that can be referred to when sending back
 const rmsgShowIndicators = "show-indicators" // show-indicators x1,y1 x2,y2 ...
 
+const ids = Array.from({ length: 22 }, (_, i) => i) // 0 .. 11
+const pieceId = (id) => `piece-${id}`
+const indicatorId = (id) => `indicator-${id}`
+const pieces = ids.map((id) => document.getElementById(pieceId(id)))
+
+const board = document.getElementById("board")
+const stockYou = document.getElementById("stock-you")
+const stockEnemy = document.getElementById("stock-enemy")
+
 /// Setup connection!
 let send = () => {} // Override inside the 'connect' closure
 const connect = () => {
+	// Move all pieces to the bench
+	const stockX = [5, 4, 4, 3, 3, 2, 2, 2, 1, 1, 1] // placement
+	const stockZ = [0, 0, 1, 0, 1, 0, 1, 2, 0, 1, 2] // placement
+	ids.forEach((id) => {
+		const h = pieces[id]
+		const z = stockZ[id % 11]
+		const w = window.innerWidth
+		const x = (stockX[id % 11] / 5.2) * w + z * 11 - w * 0.1
+
+		const y = 0
+		if (id < 11) {
+			stockYou.appendChild(h)
+		} else {
+			stockEnemy.appendChild(h)
+		}
+		h.setAttribute("transform", `translate(${x}, ${y}), scale(0.8)`)
+	})
 	// Helper function for comma-delimited numbers
 	const getNums = (s) => s.split(",").map(Number)
 	const ws = new WebSocket("ws://192.168.0.100:9000")
@@ -55,8 +81,6 @@ const connect = () => {
 				console.log(`Hello from ${args[0]}!`)
 				break
 			case rmsgInit: {
-				console.log("initial positions")
-				console.log(args)
 				localStorage.setItem("player-token", args[0])
 				args.slice(1).forEach((a) => {
 					move(getNums(a))
@@ -73,25 +97,20 @@ const connect = () => {
 // Finish connection-setup
 connect()
 
-const ids = Array.from({ length: 12 }, (_, i) => i) // 0 .. 11
-const pieceId = (id) => `piece-${id}`
-const indicatorId = (id) => `indicator-${id}`
-const pieces = ids.map((id) => document.getElementById(pieceId(id)))
-
-pieces.forEach((h) => {
-	h.style.display = "none"
-})
-
 const sqrt3 = Math.sqrt(3)
 const getHexCoord = (x, y, z) => {
-	const scale = 75
+	const scale = 76
 	const newX = (x / 2) * sqrt3 + z * 0.05
 	const newY = y + x / 2 + z * 0.07
 	return [newX * scale, -newY * scale]
 }
 
-// Hex for 'indicator' (where to move). Need ID too!:
-const board = document.getElementById("board")
+const removeIndicators = () => {
+	document.querySelectorAll(".indicator").forEach((el) => {
+		el.remove()
+	})
+}
+
 const addIndicator = (i, x, y, z) => {
 	const [cx, cy] = getHexCoord(x, y, z)
 	const indicator = document.createElementNS(
@@ -111,11 +130,6 @@ const addIndicator = (i, x, y, z) => {
 		send(smsgClickIndicator, i)
 	})
 }
-const removeIndicators = () => {
-	document.querySelectorAll(".indicator").forEach((el) => {
-		el.remove()
-	})
-}
 
 const move = (args) => {
 	removeIndicators()
@@ -125,20 +139,26 @@ const move = (args) => {
 	const [newX, newY] = getHexCoord(x, y, z)
 	h.setAttribute("transform", `translate(${newX}, ${newY})`)
 	h.style.display = ""
-	if (z > 0) board.appendChild(h)
+	board.appendChild(h) // Render on top / move from stock to board
 }
 
-window.addEventListener("resize", () =>
+const setLayoutPlacement = () => {
 	board.setAttribute(
 		"transform",
 		`translate(${window.innerWidth / 2}, ${window.innerHeight / 2})`,
-	),
-)
+	)
+	stockYou.setAttribute(
+		"transform",
+		`translate(0, ${window.innerHeight * 0.9})`,
+	)
+	stockEnemy.setAttribute(
+		"transform",
+		`translate(0, ${window.innerHeight * 0.1 - 20})`,
+	)
+}
+window.addEventListener("resize", setLayoutPlacement)
+setLayoutPlacement()
 
-board.setAttribute(
-	"transform",
-	`translate(${window.innerWidth / 2}, ${window.innerHeight / 2})`,
-)
 const field = document.querySelector("svg")
 
 ids.forEach((id) => {

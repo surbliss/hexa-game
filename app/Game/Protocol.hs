@@ -3,6 +3,7 @@
 module Game.Protocol where
 
 import Data.List (intercalate)
+import Data.Maybe (isNothing)
 import Data.Text (Text)
 import Data.Text qualified as T
 import Data.Vector (Vector)
@@ -44,6 +45,8 @@ class Encodable a where
 instance Encodable ClientMessage where
   encode msg = case msg of
     CHello i -> "hello " <> T.show i
+    -- No trailing spaces, if nothing placed yet!
+    CInitPlayer player xs | all isNothing xs -> T.intercalate " " ["init", encode player]
     CInitPlayer player xs -> T.intercalate " " ["init", encode player, encode xs]
     CMovePiece piec -> "move " <> encode piec
     CShowIndicators xs -> "show-indicators " <> T.intercalate " " (map encode xs)
