@@ -23,7 +23,7 @@ const stockEnemy = document.getElementById("stock-enemy")
 let send = () => {} // Override inside the 'connect' closure
 const connect = () => {
 	// Move all pieces to the bench
-	const stockX = [5, 4, 4, 3, 3, 2, 2, 2, 1, 1, 1] // placement
+	const stockX = [5, 4.05, 4.05, 3.1, 3.1, 2, 2, 2, 1, 1, 1] // placement
 	const stockZ = [0, 0, 1, 0, 1, 0, 1, 2, 0, 1, 2] // placement
 	ids.forEach((id) => {
 		const h = pieces[id]
@@ -99,7 +99,7 @@ connect()
 
 const sqrt3 = Math.sqrt(3)
 const getHexCoord = (x, y, z) => {
-	const scale = 76
+	const scale = 60
 	const newX = (x / 2) * sqrt3 + z * 0.05
 	const newY = y + x / 2 + z * 0.07
 	return [newX * scale, -newY * scale]
