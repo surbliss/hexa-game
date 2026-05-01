@@ -1,5 +1,5 @@
 cabal-version:      3.0
-name:               hex-beers
+name:               hexa-game
 version:            0.1.0.0
 -- synopsis:
 -- description:
@@ -16,7 +16,7 @@ extra-doc-files:    CHANGELOG.md
 common warnings
     ghc-options: -Wall
 
-executable hex-beers
+executable hexa-game
     import:           warnings
     main-is:          Main.hs
 
