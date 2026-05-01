@@ -22,7 +22,7 @@
     commands = [
       {
         name = "s";
-        help = "serve (at 192.168.0.60:8080)";
+        help = "serve (at 192.168.0.100:8080)";
         command = "npx live-server --no-browser static";
       }
       {

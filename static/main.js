@@ -23,8 +23,8 @@ const stockEnemy = document.getElementById("stock-enemy")
 let send = () => {} // Override inside the 'connect' closure
 const connect = () => {
 	// Move all pieces to the bench
-	const stockX = [5, 4.05, 4.05, 3.1, 3.1, 2, 2, 2, 1, 1, 1] // placement
-	const stockZ = [0, 0, 1, 0, 1, 0, 1, 2, 0, 1, 2] // placement
+	const stockX = [1, 1, 1, 2, 2, 2, 3, 3, 4, 4, 5] // placement
+	const stockZ = [0, 1, 2, 0, 1, 2, 0, 1, 0, 1, 0] // placement
 	ids.forEach((id) => {
 		const h = pieces[id]
 		const z = stockZ[id % 11]
