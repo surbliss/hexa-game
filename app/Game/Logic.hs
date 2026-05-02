@@ -1,17 +1,104 @@
-module Game.Logic where
+module Game.Logic (
+  GameState (..),
+  initialGameState,
+  legalMoves,
+  movePiece,
+) where
 
-import Data.List (intersect, (\\))
-
---- Stateless game logic
+import Control.Exception (assert)
+import Data.Vector.Unboxed (Vector, (!), (//))
+import Data.Vector.Unboxed qualified as V
+import Debug.Trace (traceShowId)
+import Game.Protocol (Piece)
+import Game.Types (
+  Coordinate (..),
+  GameState (..),
+  Height (..),
+  Location (..),
+  PieceId,
+  PieceKind (..),
+  Placement,
+  Player (..),
+ )
 
 ---------------------------------------------------
--- The board
+-- Internal Data-types
 ---------------------------------------------------
--- See https://en.wikipedia.org/wiki/Hexagonal_Efficient_Coordinate_System for info about hexagonal coordinate-system
-
--- Coordinate: Y-coordinate points up, X-coordinate 60 degree north-east from Y
-newtype Coordinate = Coord (Int, Int) deriving (Eq, Show)
 data Direction = U | D | UR | DR | UL | DL deriving (Eq, Show)
+
+---------------------------------------------------
+-- Exported functionality
+---------------------------------------------------
+legalMoves :: GameState -> Piece -> Vector Placement
+legalMoves state i
+  | turn state == 0 && currentPlayer state == Player1
+      || locations state ! i == Stock =
+      V.singleton (Coord (0, 0), Height (0))
+  | otherwise = case pieceKinds ! i of
+      _ -> traceShowId $ V.map (\x -> (x, Height 0)) adjs
+ where
+  c = coordinates state ! i
+  adjs = adjCoordinates c
+
+movePiece :: Piece -> Placement -> GameState -> GameState
+movePiece i (c, h) state =
+  assert
+    ((c, h) `V.elem` legalMoves state i)
+    state
+      { coordinates = coordinates state // [(i, c)]
+      , heights = heights state // [(i, h)]
+      , locations = locations state // [(i, Board)]
+      , currentPlayer = nextPlayer
+      , turn = nextTurn
+      }
+ where
+  (nextPlayer, nextTurn) = case (currentPlayer state) of
+    Player1 -> (Player2, turn state)
+    Player2 -> (Player1, turn state + 1)
+
+---------------------------------------------------
+-- Static game info
+---------------------------------------------------
+--- Public
+initialGameState :: GameState
+initialGameState =
+  GameState
+    { locations = V.replicate 22 Stock
+    , coordinates = V.replicate 22 (Coord (0, 0))
+    , heights = V.replicate 22 (Height 0)
+    , currentPlayer = Player1
+    , turn = 0
+    }
+
+--- Private
+pieceKinds :: Vector PieceKind
+pieceKinds =
+  V.fromListN 22 $ ps <> ps
+ where
+  ps =
+    [ Blue
+    , Blue
+    , Blue
+    , Green
+    , Green
+    , Green
+    , Red
+    , Red
+    , Purple
+    , Purple
+    , Orange
+    ]
+
+_pieceOwner :: PieceId -> Player
+_pieceOwner n
+  | n < 0 = error $ "Piece ID " <> show n <> " below bounds (21)"
+  | n < 11 = Player1
+  | n < 22 = Player2
+  | otherwise = error $ "Piece ID " <> show n <> " above bounds (21)"
+
+---------------------------------------------------
+-- Modifying game-state
+---------------------------------------------------
 
 step :: Direction -> Coordinate -> Coordinate
 step dir (Coord (x, y)) = Coord $ case dir of
@@ -20,56 +107,7 @@ step dir (Coord (x, y)) = Coord $ case dir of
   UR -> (x + 1, y)
   DR -> (x + 1, y - 1)
   UL -> (x - 1, y + 1)
-  DL -> (x - 1, y - 1)
+  DL -> (x - 1, y)
 
-neighbours :: Coordinate -> [Coordinate]
-neighbours c = map (\d -> step d c) [U, D, UR, DR, UL, DL]
-
-data Alignment = North | South deriving (Eq, Show)
-
-newtype Hive = Hive [(Coordinate, Piece, Alignment)] deriving (Eq, Show)
-
-coordinates :: Hive -> [Coordinate]
-coordinates (Hive xs) = map (\(c, _, _) -> c) xs
-
-isConnected :: [Coordinate] -> Bool
-isConnected cs = and [any (`elem` cs) ns | ns <- map neighbours cs]
-
----------------------------------------------------
--- Pieces
----------------------------------------------------
-data Piece
-  = G -- queen
-  | P -- hopper
-  | C -- soldier
-  | V -- Spider
-  | B -- Beetle
-  deriving (Eq, Show)
-
-legalMoves :: Piece -> Hive -> Coordinate -> [Coordinate]
-legalMoves G h c = neighbours c \\ coordinates h
-legalMoves B h c = neighbours c `intersect` coordinates h
-legalMoves _ _ _ = undefined
-
-testBoard :: [Coordinate]
-testBoard =
-  map
-    Coord
-    [ (1, 1)
-    , (-1, 1)
-    , (0, 1)
-    , (3, 3)
-    ]
-
--- -- For testing
--- exampleHive :: Hive
--- exampleHive =
---   Hive
---     [ (Coord (U, 0, 2), B, North)
---     , (Coord (U, 0, 1), V, North)
---     , (Coord (D, 1, 2), C, South)
---     , (Coord (U, 1, 2), P, North)
---     , (Coord (U, 1, 1), G, South)
---     , (Coord (U, 1, 0), G, North)
---     , (Coord (D, 2, 0), P, South)
---     ]
+adjCoordinates :: Coordinate -> Vector Coordinate
+adjCoordinates c = V.fromList $ map (\d -> step d c) [U, D, UR, DR, UL, DL]

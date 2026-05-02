@@ -21,7 +21,7 @@ executable hexa-game
     main-is:          Main.hs
 
     other-modules:
-        Util, GenServer, Game.Logic, Game.Protocol, Game.Server, Game.Socket,
+        Util, GenServer, Game.Logic, Game.Protocol, Game.Server, Game.Socket, Game.Types,
     -- other-extensions:
     build-depends:
         base ^>=4.20.2.0
@@ -29,5 +29,6 @@ executable hexa-game
         , websockets
         , text
         , vector
+        , vector-th-unbox
     hs-source-dirs:   app
     default-language: GHC2024
