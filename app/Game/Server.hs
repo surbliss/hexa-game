@@ -1,23 +1,28 @@
 module Game.Server (initServer) where
 
-import Control.Concurrent (dupChan)
-import Data.Vector qualified as V
 import Game.Logic (
-  GameState (..),
-  Location (..),
-  Placement,
+  GameState,
+  boardPlacements,
   initialGameState,
   legalMoves,
   movePiece,
  )
-import Game.Protocol
+import Game.Protocol (
+  ClientChan,
+  ClientMessage (..),
+  ClientRole (..),
+  GameServer,
+  PieceId,
+  Placement,
+  ServerMessage (..),
+ )
 import GenServer
 
 data ServerState = ServerState
-  { client1 :: PlayerChan
-  , client2 :: PlayerChan
-  , spectators :: PlayerChan -- Just dup this, if more added
-  , indicators :: Maybe (Piece, [Placement]) -- What piece do the indicators belong to?
+  { client1 :: ClientChan
+  , client2 :: ClientChan
+  , spectators :: ClientChan -- Just dup this, if more added
+  , indicators :: Maybe (PieceId, [Placement]) -- What piece do the indicators belong to?
   , gameState :: GameState
   }
 
@@ -47,7 +52,7 @@ handleServerMessage' :: ServerState -> ServerMessage -> IO ServerState
 handleServerMessage' state msg = case msg of
   SRegisterClient client rc -> do
     dc <- dupChan c -- NOTE: Remove when only one connection pr. player is enforced
-    serverReply rc (dc, p, placements state)
+    serverReply rc (dc, p, boardPlacements (gameState state))
     pure state
    where
     (c, p) = case client of
@@ -59,7 +64,7 @@ handleServerMessage' state msg = case msg of
       (CShowIndicators indPlaces)
     pure $ state{indicators = Just (i, indPlaces)}
    where
-    indPlaces = V.toList $ legalMoves (gameState state) i
+    indPlaces = legalMoves (gameState state) i
   SClickIndicator client i -> case indicators state of
     Nothing -> error "No indicators stored, rip"
     Just (pid, cs) -> do
@@ -75,15 +80,7 @@ handleServerMessage' state msg = case msg of
 ---------------------------------------------------
 -- Helper-functions
 ---------------------------------------------------
-placements :: ServerState -> [Maybe Placement]
-placements state = map onBoard (V.toList xs)
- where
-  gstate = gameState state
-  xs = V.zip3 (locations gstate) (coordinates gstate) (heights gstate)
-  onBoard (Stock, _, _) = Nothing
-  onBoard (Board, c, h) = Just (c, h)
-
-getClientChan :: ClientKind -> ServerState -> PlayerChan
+getClientChan :: ClientRole -> ServerState -> ClientChan
 getClientChan ActiveClient1 = client1
 getClientChan ActiveClient2 = client2
 getClientChan Spectator = spectators

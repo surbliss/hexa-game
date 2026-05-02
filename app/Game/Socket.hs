@@ -6,8 +6,8 @@ import Control.Monad (forever)
 import Data.Text (Text)
 import Data.Text qualified as T
 import Game.Protocol (
-  ClientKind (..),
   ClientMessage (CInitPlayer),
+  ClientRole (..),
   GameServer,
   ServerMessage (SRegisterClient),
   encode,
@@ -26,7 +26,7 @@ import Util
 socketApp :: GameServer -> PendingConnection -> IO ()
 socketApp gameServer pendingConnection = do
   con <- acceptRequest pendingConnection
-  -- Get player info (must be 'connect ...')
+  -- Get player info (their first message must be 'connect <token>')
   text <- receiveData con
   (outChan, client, pieces) <- case T.splitOn " " text of
     ["connect", token] -> requestReply gameServer $ SRegisterClient $ getClientKind token
@@ -41,7 +41,7 @@ socketApp gameServer pendingConnection = do
     echo $ "sending: " <> show msg
     serverSend gameServer (parseServerMessage client msg)
 
-getClientKind :: Text -> Maybe ClientKind
+getClientKind :: Text -> Maybe ClientRole
 getClientKind "new" = Nothing
 getClientKind "1" = Just ActiveClient1
 getClientKind "2" = Just ActiveClient2

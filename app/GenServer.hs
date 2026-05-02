@@ -2,6 +2,7 @@
 module GenServer (
   Chan,
   Server,
+  dupChan,
   writeChan,
   readChan,
   serverSend,
@@ -20,6 +21,7 @@ where
 import Control.Concurrent (
   Chan,
   ThreadId,
+  dupChan,
   forkIO,
   killThread,
   newChan,
