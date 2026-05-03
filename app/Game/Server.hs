@@ -1,10 +1,16 @@
 module Game.Server (initServer) where
 
 import Control.Concurrent (dupChan)
-import Data.Vector.Unboxed qualified as V
-import Game.Logic (initialGameState, legalMoves, movePiece)
+import Data.Vector qualified as V
+import Game.Logic (
+  GameState (..),
+  Location (..),
+  Placement,
+  initialGameState,
+  legalMoves,
+  movePiece,
+ )
 import Game.Protocol
-import Game.Types
 import GenServer
 
 data ServerState = ServerState

@@ -1,35 +1,59 @@
 module Game.Logic (
   GameState (..),
+  Coordinate (..),
+  Location (..),
+  Height (..),
+  Placement,
   initialGameState,
   legalMoves,
   movePiece,
 ) where
 
 import Control.Exception (assert)
-import Data.Vector.Unboxed (Vector, (!), (//))
-import Data.Vector.Unboxed qualified as V
+import Data.Vector (Vector, (!), (//))
+import Data.Vector qualified as V
 import Debug.Trace (traceShowId)
-import Game.Protocol (Piece)
-import Game.Types (
-  Coordinate (..),
-  GameState (..),
-  Height (..),
-  Location (..),
-  PieceId,
-  PieceKind (..),
-  Placement,
-  Player (..),
- )
 
 ---------------------------------------------------
--- Internal Data-types
+-- Data-types
 ---------------------------------------------------
+
+-- | All the info about gamestate, that changes throughout
+data GameState = GameState
+  { locations :: Vector Location
+  , coordinates :: Vector Coordinate
+  , heights :: Vector Height
+  , currentPlayer :: Player
+  , turn :: Int
+  }
+
 data Direction = U | D | UR | DR | UL | DL deriving (Eq, Show)
+
+-- Combined piece-state
+newtype Coordinate = Coord (Int, Int) deriving (Eq, Show)
+newtype Height = Height Int deriving (Eq, Show)
+data Location = Stock | Board deriving (Eq, Show)
+type Placement = (Coordinate, Height)
+
+-- For indexing into piece-array
+type PieceId = Int
+
+-- Which player is allowed to move
+data Player = Player1 | Player2 deriving (Eq, Show)
+
+-- Using their color for now
+data PieceKind
+  = Orange -- queen
+  | Green -- hopper
+  | Blue -- soldier
+  | Red -- Spider
+  | Purple -- Beetle
+  deriving (Eq, Show)
 
 ---------------------------------------------------
 -- Exported functionality
 ---------------------------------------------------
-legalMoves :: GameState -> Piece -> Vector Placement
+legalMoves :: GameState -> PieceId -> Vector Placement
 legalMoves state i
   | turn state == 0 && currentPlayer state == Player1
       || locations state ! i == Stock =
@@ -40,7 +64,7 @@ legalMoves state i
   c = coordinates state ! i
   adjs = adjCoordinates c
 
-movePiece :: Piece -> Placement -> GameState -> GameState
+movePiece :: PieceId -> Placement -> GameState -> GameState
 movePiece i (c, h) state =
   assert
     ((c, h) `V.elem` legalMoves state i)

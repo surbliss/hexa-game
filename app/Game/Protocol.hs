@@ -6,7 +6,7 @@ import Data.List (intercalate)
 import Data.Maybe (isNothing, mapMaybe)
 import Data.Text (Text)
 import Data.Text qualified as T
-import Game.Types (Coordinate (..), Height (..), Placement)
+import Game.Logic (Coordinate (..), Height (..), Placement)
 import GenServer
 import Util
 
