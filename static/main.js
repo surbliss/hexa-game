@@ -100,8 +100,8 @@ connect()
 const sqrt3 = Math.sqrt(3)
 const getHexCoord = (x, y, z) => {
 	const scale = 60
-	const newX = (x / 2) * sqrt3 + z * 0.05
-	const newY = y + x / 2 + z * 0.07
+	const newX = (x / 2) * sqrt3 + z * 0.1
+	const newY = y + x / 2 + z * 0.14
 	return [newX * scale, -newY * scale]
 }
 
@@ -139,7 +139,9 @@ const move = (args) => {
 	const [newX, newY] = getHexCoord(x, y, z)
 	h.setAttribute("transform", `translate(${newX}, ${newY})`)
 	h.style.display = ""
-	board.appendChild(h) // Render on top / move from stock to board
+	if (!board.contains(h) || z > 0) {
+		board.appendChild(h) // Render on top / move from stock to board
+	}
 }
 
 const setLayoutPlacement = () => {

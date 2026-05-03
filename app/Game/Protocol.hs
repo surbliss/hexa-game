@@ -56,7 +56,9 @@ instance Encodable ClientMessage where
     CInitPlayer clientKind xs | all isNothing xs -> T.intercalate " " ["init", encode clientKind]
     CInitPlayer player xs -> T.intercalate " " ["init", encode player, encode xs]
     CMovePiece piec -> "move " <> encode piec
-    CShowIndicators xs -> "show-indicators " <> T.intercalate " " (map encode xs)
+    CShowIndicators xs
+      | null xs -> "show-indicators"
+      | otherwise -> "show-indicators " <> T.intercalate " " (map encode xs)
 
 instance Encodable Placement where
   encode (Placement (x, y, z)) = T.pack $ intercalate "," $ map show $ [x, y, z]
