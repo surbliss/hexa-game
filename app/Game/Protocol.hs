@@ -11,17 +11,18 @@ import GenServer
 import Util
 
 --- Messages
+type BoardPositions = [Maybe RenderPosition] -- NOTE: _Has_ to be precisely length 22
 data ClientMessage
   = CHello PieceId -- Tmp, for testing
-  | CInitPlayer ClientRole [Maybe Placement]
-  | CMovePiece (PieceId, Placement)
-  | CShowIndicators [Placement] -- TODO: Add ID Indicators too!
+  | CInitPlayer ClientRole BoardPositions -- NOTE: _Has_ to be length 22
+  | CMovePiece (PieceId, RenderPosition)
+  | CShowIndicators [RenderPosition] -- TODO: Add ID Indicators too!
   deriving (Eq, Show)
 
 data ServerMessage
   = SRegisterClient
       (Maybe ClientRole) -- Nothing if a new client that needs to be assigned
-      (ReplyChan (ClientChan, ClientRole, [Maybe Placement]))
+      (ReplyChan (ClientChan, ClientRole, BoardPositions))
   | SClickPiece ClientRole PieceId
   | SClickIndicator ClientRole PieceId
   deriving (Eq, Show)
@@ -41,9 +42,13 @@ type ClientChan = Chan ClientMessage -- Message back to the client
 
 {- | Datatype to communicate placement of Pieces to the client.
  The tuple is (x, y, z), i.e. (x, y) being hexagonal coordinates, and z being height (if placed on top of another piece)
-We use 'Maybe Placement' for pieces, that might be in the stock, and hence not placed yet
+We use 'Maybe RenderPosition' for pieces, that might be in the stock, and hence not placed yet
 -}
-newtype Placement = Placement (Int, Int, Int) deriving (Eq, Show, Ord)
+newtype RenderPosition = RenderPosition (Int, Int, Int) deriving (Eq, Show, Ord)
+
+-- Convert to tuple
+renderCoord :: RenderPosition -> (Int, Int)
+renderCoord (RenderPosition (x, y, _)) = (x, y)
 
 --- Helper-class to convert to/from JS message-format
 class Encodable a where
@@ -60,10 +65,10 @@ instance Encodable ClientMessage where
       | null xs -> "show-indicators"
       | otherwise -> "show-indicators " <> T.intercalate " " (map encode xs)
 
-instance Encodable Placement where
-  encode (Placement (x, y, z)) = T.pack $ intercalate "," $ map show $ [x, y, z]
+instance Encodable RenderPosition where
+  encode (RenderPosition (x, y, z)) = T.pack $ intercalate "," $ map show $ [x, y, z]
 
-instance Encodable (PieceId, Placement) where
+instance Encodable (PieceId, RenderPosition) where
   encode (i, p) = T.show i <> "," <> encode p
 
 instance Encodable ClientRole where
@@ -71,7 +76,7 @@ instance Encodable ClientRole where
   encode ActiveClient2 = "2"
   encode Spectator = "s"
 
-instance Encodable [Maybe Placement] where
+instance Encodable [Maybe RenderPosition] where
   encode xs = text
    where
     validPiece (i, Just coord) = Just $ encode (i, coord)

@@ -2,7 +2,7 @@ module Game.Server (initServer) where
 
 import Game.Logic (
   GameState,
-  boardPlacements,
+  boardRenderPositions,
   initialGameState,
   legalMoves,
   movePiece,
@@ -13,8 +13,9 @@ import Game.Protocol (
   ClientRole (..),
   GameServer,
   PieceId,
-  Placement,
+  RenderPosition,
   ServerMessage (..),
+  renderCoord,
  )
 import GenServer
 
@@ -22,7 +23,7 @@ data ServerState = ServerState
   { client1 :: ClientChan
   , client2 :: ClientChan
   , spectators :: ClientChan -- Just dup this, if more added
-  , indicators :: Maybe (PieceId, [Placement]) -- What piece do the indicators belong to?
+  , indicators :: Maybe (PieceId, [RenderPosition]) -- What piece do the indicators belong to?
   , gameState :: GameState
   }
 
@@ -52,20 +53,20 @@ handleServerMessage' :: ServerState -> ServerMessage -> IO ServerState
 handleServerMessage' state msg = case msg of
   SRegisterClient client rc -> do
     dc <- dupChan c -- NOTE: Remove when only one connection pr. player is enforced
-    serverReply rc (dc, p, boardPlacements (gameState state))
+    serverReply rc (dc, p, boardRenderPositions (gameState state))
     pure state
    where
     (c, p) = case client of
       Nothing -> (spectators state, Spectator)
       -- Just c' -> (getClientChan c' state, c') -- TEMP: For testing, spectator can move both
-      Just c' -> (spectators state, Spectator)
+      Just _ -> (spectators state, Spectator)
   SClickPiece p i -> do
     writeChan
       (getClientChan p state)
-      (CShowIndicators indPlaces)
-    pure $ state{indicators = Just (i, indPlaces)}
+      (CShowIndicators indRenderPositions)
+    pure $ state{indicators = Just (i, indRenderPositions)}
    where
-    indPlaces = legalMoves (gameState state) i
+    indRenderPositions = legalMoves (gameState state) i
   SClickIndicator client i -> case indicators state of
     Nothing -> error "No indicators stored, rip"
     Just (pid, cs) -> do
@@ -73,7 +74,7 @@ handleServerMessage' state msg = case msg of
       pure $
         state
           { indicators = Nothing
-          , gameState = movePiece pid moveTo (gameState state)
+          , gameState = movePiece pid (renderCoord moveTo) (gameState state)
           }
      where
       moveTo = cs !! i
