@@ -25,20 +25,28 @@ const connect = () => {
 	// Move all pieces to the bench
 	const stockX = [1, 1, 1, 2, 2, 2, 3, 3, 4, 4, 5] // placement
 	const stockZ = [0, 1, 2, 0, 1, 2, 0, 1, 0, 1, 0] // placement
-	ids.forEach((id) => {
-		const h = pieces[id]
-		const z = stockZ[id % 11]
-		const w = window.innerWidth
-		const x = (stockX[id % 11] / 5.2) * w + z * 11 - w * 0.1
+	const renderPieces = (playerToken) =>
+		ids.forEach((id) => {
+			const h = pieces[id]
+			const z = stockZ[id % 11]
+			const w = window.innerWidth
+			const x = (stockX[id % 11] / 5.2) * w + z * 11 - w * 0.1
 
-		const y = 0
-		if (id < 11) {
-			stockYou.appendChild(h)
-		} else {
-			stockEnemy.appendChild(h)
-		}
-		h.setAttribute("transform", `translate(${x}, ${y}), scale(0.8)`)
-	})
+			const y = 0
+			if (id < 11) {
+				stockYou.appendChild(h)
+			} else {
+				stockEnemy.appendChild(h)
+			}
+			h.setAttribute("transform", `translate(${x}, ${y}) scale(0.8)`)
+			if (
+				(playerToken === "1" && id < 11) ||
+				(playerToken === "2" && id > 10) ||
+				playerToken === "s"
+			) {
+				h.style.visibility = "visible"
+			}
+		})
 	// Helper function for comma-delimited numbers
 	const getNums = (s) => s.split(",").map(Number)
 	const ws = new WebSocket("ws://192.168.0.100:9000")
@@ -81,7 +89,10 @@ const connect = () => {
 				console.log(`Hello from ${args[0]}!`)
 				break
 			case rmsgInit: {
-				localStorage.setItem("player-token", args[0])
+				const token = args[0]
+				localStorage.setItem("player-token", token)
+				console.log(token)
+				renderPieces(token)
 				args.slice(1).forEach((a) => {
 					move(getNums(a))
 				})
@@ -122,8 +133,13 @@ const addIndicator = (i, x, y, z) => {
 	indicator.setAttribute("id", indicatorId(i))
 	indicator.style.fill = "rgba(173, 216, 230, 0.5)"
 	indicator.style.stroke = "rgba(173, 216, 230, 0.8)"
+	indicator.style.visibility = "visible"
 	indicator.classList.add("indicator")
-	board.appendChild(indicator)
+	if (z > 0) {
+		board.appendChild(indicator)
+	} else {
+		board.prepend(indicator)
+	}
 	indicator.addEventListener("click", (e) => {
 		e.stopPropagation()
 		removeIndicators()
@@ -137,11 +153,19 @@ const move = (args) => {
 	console.log(args.map(Number))
 	const h = pieces[id]
 	const [newX, newY] = getHexCoord(x, y, z)
-	h.setAttribute("transform", `translate(${newX}, ${newY})`)
-	h.style.display = ""
-	if (!board.contains(h) || z > 0) {
-		board.appendChild(h) // Render on top / move from stock to board
+	h.style.visibility = "visible"
+	if (!board.contains(h)) {
+		board.appendChild(h) // Move from stock to board
+	} else if (z > 0) {
+		const old = h.getAttribute("transform")
+		board.appendChild(h) // Render on top
+		h.style.transition = "none"
+		h.setAttribute("transform", old)
+		// Force reflow so browser registers the "from" position
+		h.getBoundingClientRect()
+		h.style.transition = ""
 	}
+	h.setAttribute("transform", `translate(${newX}, ${newY})`)
 }
 
 const setLayoutPlacement = () => {

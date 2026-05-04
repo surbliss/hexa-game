@@ -56,8 +56,9 @@ handleServerMessage' state msg = case msg of
     pure state
    where
     (c, p) = case client of
-      Nothing -> (client1 state, ActiveClient1) -- TODO: Add check if player 1 already added
-      Just c' -> (getClientChan c' state, c')
+      Nothing -> (spectators state, Spectator)
+      -- Just c' -> (getClientChan c' state, c') -- TEMP: For testing, spectator can move both
+      Just c' -> (spectators state, Spectator)
   SClickPiece p i -> do
     writeChan
       (getClientChan p state)

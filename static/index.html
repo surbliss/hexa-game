@@ -23,6 +23,8 @@
       pointer-events: all;
       stroke-width: 2;
       stroke-linejoin: round;
+      visibility: hidden;
+      transition: transform 0.3s ease
     }
   </style>
 </head>
@@ -41,31 +43,31 @@
     <!-- For rendering purposes, want the last pieces to be rendered first -->
     <g id="stock-you">
       <!-- Player 1 pieces -->
-      <use id="piece-0" href="#piece" fill="cornflowerblue" stroke="black" />
-      <use id="piece-1" href="#piece" fill="cornflowerblue" stroke="black" />
-      <use id="piece-2" href="#piece" fill="cornflowerblue" stroke="black" />
-      <use id="piece-3" href="#piece" fill="darkseagreen" stroke="black" />
-      <use id="piece-4" href="#piece" fill="darkseagreen" stroke="black" />
-      <use id="piece-5" href="#piece" fill="darkseagreen" stroke="black" />
-      <use id="piece-6" href="#piece" fill="indianred" stroke="black" />
-      <use id="piece-7" href="#piece" fill="indianred" stroke="black" />
-      <use id="piece-8" href="#piece" fill="mediumpurple" stroke="black" />
-      <use id="piece-9" href="#piece" fill="mediumpurple" stroke="black" />
-      <use id="piece-10" href="#piece" fill="orange" stroke="black" />
+      <use id="piece-0" href="#piece" stroke="cornflowerblue" fill="black" />
+      <use id="piece-1" href="#piece" stroke="cornflowerblue" fill="black" />
+      <use id="piece-2" href="#piece" stroke="cornflowerblue" fill="black" />
+      <use id="piece-3" href="#piece" stroke="darkseagreen" fill="black" />
+      <use id="piece-4" href="#piece" stroke="darkseagreen" fill="black" />
+      <use id="piece-5" href="#piece" stroke="darkseagreen" fill="black" />
+      <use id="piece-6" href="#piece" stroke="indianred" fill="black" />
+      <use id="piece-7" href="#piece" stroke="indianred" fill="black" />
+      <use id="piece-8" href="#piece" stroke="mediumpurple" fill="black" />
+      <use id="piece-9" href="#piece" stroke="mediumpurple" fill="black" />
+      <use id="piece-10" href="#piece" stroke="orange" fill="black" />
     </g>
     <g id="stock-enemy">
       <!-- Player 2 pieces -->
-      <use id="piece-11" href="#piece" fill="cornflowerblue" stroke="white" />
-      <use id="piece-12" href="#piece" fill="cornflowerblue" stroke="white" />
-      <use id="piece-13" href="#piece" fill="cornflowerblue" stroke="white" />
-      <use id="piece-14" href="#piece" fill="darkseagreen" stroke="white" />
-      <use id="piece-15" href="#piece" fill="darkseagreen" stroke="white" />
-      <use id="piece-16" href="#piece" fill="darkseagreen" stroke="white" />
-      <use id="piece-17" href="#piece" fill="indianred" stroke="white" />
-      <use id="piece-18" href="#piece" fill="indianred" stroke="white" />
-      <use id="piece-19" href="#piece" fill="mediumpurple" stroke="white" />
-      <use id="piece-20" href="#piece" fill="mediumpurple" stroke="white" />
-      <use id="piece-21" href="#piece" fill="orange" stroke="white" />
+      <use id="piece-11" href="#piece" stroke="cornflowerblue" fill="white" />
+      <use id="piece-12" href="#piece" stroke="cornflowerblue" fill="white" />
+      <use id="piece-13" href="#piece" stroke="cornflowerblue" fill="white" />
+      <use id="piece-14" href="#piece" stroke="darkseagreen" fill="white" />
+      <use id="piece-15" href="#piece" stroke="darkseagreen" fill="white" />
+      <use id="piece-16" href="#piece" stroke="darkseagreen" fill="white" />
+      <use id="piece-17" href="#piece" stroke="indianred" fill="white" />
+      <use id="piece-18" href="#piece" stroke="indianred" fill="white" />
+      <use id="piece-19" href="#piece" stroke="mediumpurple" fill="white" />
+      <use id="piece-20" href="#piece" stroke="mediumpurple" fill="white" />
+      <use id="piece-21" href="#piece" stroke="orange" fill="white" />
     </g>
     <g id="board">
     </g>
