@@ -1,0 +1,38 @@
+cabal-version: 3.0
+name: hexa-game
+version: 0.1.0.0
+-- synopsis:
+-- description:
+license: BSD-3-Clause
+license-file: LICENSE
+author: Thomas
+maintainer: thomas.dev@surlykke.dk
+-- copyright:
+category: Game
+build-type: Simple
+extra-doc-files: CHANGELOG.md
+
+common warnings
+  ghc-options: -Wall
+
+executable hexa-game
+  import: warnings
+  main-is: Main.hs
+  other-modules:
+    Game.Logic
+    Game.Protocol
+    Game.Server
+    Game.Socket
+    GenServer
+    Util
+
+  build-depends:
+    base ^>=4.20.2.0,
+    containers,
+    text,
+    vector,
+    vector-th-unbox,
+    websockets,
+
+  hs-source-dirs: app
+  default-language: GHC2024

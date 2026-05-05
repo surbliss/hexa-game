@@ -2,3 +2,5 @@
 .envrc
 dist-newstyle/
 tmp/
+gleam-frontend/build
+gleam-frontend/.lustre

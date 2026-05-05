@@ -4,40 +4,46 @@
     # Default settings. For other settings, see
     # https://flake.parts/options/haskell-flake.html
     devShell.tools = hp: { inherit (hp) cabal-gild; };
-    devShell.mkShellArgs = {
-      packages = [ pkgs.python3 ];
-    };
+    projectRoot = ./backend;
   };
 
   devshells.other = {
     packages = with pkgs; [
+      # For handling running background-processes
+      overmind
+
       nodejs
-      python3
       superhtml
       typescript-language-server
       biome
-
+      gleam
+      inotify-tools # For lustre_dev auto-reload
+      erlang # Also needed for lustre_dev
+      rebar3
     ];
 
     commands = [
+      # Gleam
       {
-        name = "s";
-        help = "serve (at 192.168.0.100:8080)";
-        command = "npx live-server --no-browser static";
+        name = "gw";
+        help = "Backend + Gleam-frontend, with lustre_dev";
+        command = "overmind start -l backend,gleam";
       }
+      # JS
       {
-        name = "r";
-        help = "cabal run";
-        command = "cabal run";
+        name = "jw";
+        help = "Backend + JS-frontend";
+        command = "overmind start -l backend,javascript";
       }
+      # Quit overmind process
       {
-        name = "w";
-        help = "server + watch cabal run";
-        command = "npx live-server --no-browser static & watchexec -e hs --restart cabal run";
+        name = "q";
+        help = "quit overmind process";
+        command = "overmind q";
       }
       {
         name = "re";
-        help = "direnv reload (after default.nix changes)";
+        help = "Reload nix flake (personal command, using custom 'direnv reload' defined in nushell-config)";
         command = "direnv reload";
       }
     ];
@@ -48,12 +54,5 @@
       config.haskellProjects.haskell.outputs.devShell
       config.devShells.other
     ];
-    # packages = with pkgs; [
-    #   nodejs
-    #   python3
-    #   vscode-langservers-extracted
-    #   superhtml
-    #   typescript-language-server
-    # ];
   };
 }
