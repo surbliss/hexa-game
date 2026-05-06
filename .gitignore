@@ -3,4 +3,5 @@
 dist-newstyle/
 tmp/
 gleam-frontend/build
+gleam-frontend/dist
 gleam-frontend/.lustre

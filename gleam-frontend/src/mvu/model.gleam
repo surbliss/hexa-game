@@ -2,7 +2,7 @@ import gleam/dict
 import gleam/int
 import gleam/list
 import mvu/types.{
-  type Location, type Message, type Model, type Piece, ClientClickedPiece,
+  type Location, type Message, type Model, type Piece, Blue, ClientClickedPiece,
   FirstOf2, Green, Location, Model, Orange, Player1, Player2, Purple, Red,
   SecondOf2, ThirdOf3,
 }
@@ -17,6 +17,10 @@ pub fn init(_args) {
   let ps =
     [
       #(Orange(Player1), Location(0, 0, 0)),
+      #(Red(Player1, FirstOf2), Location(0, 1, 1)),
+      #(Green(Player2, ThirdOf3), Location(1, 0, 2)),
+      #(Purple(Player2, SecondOf2), Location(1, 0, 3)),
+      #(Blue(Player1, ThirdOf3), Location(-1, 0, 0)),
       #(Red(Player1, FirstOf2), Location(0, 1, 1)),
       #(Green(Player2, ThirdOf3), Location(1, 0, 2)),
       #(Purple(Player2, SecondOf2), Location(1, 0, 3)),
