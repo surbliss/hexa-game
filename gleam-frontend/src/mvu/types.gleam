@@ -11,6 +11,7 @@ pub type Model {
 pub type Message {
   ClientClickedPiece(piece: Piece)
   ClientClickedIndicator(location: Location)
+  ClientClickedBackground
 }
 
 pub type Of2 {

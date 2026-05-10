@@ -45,9 +45,10 @@ fn board(model: Model) -> Element(Message) {
   let pieces_list = dict.to_list(model.pieces)
   let pieces =
     pieces_list
+    |> list.sort(fn(x, y) { int.compare(x.1.z, y.1.z) })
     |> list.map(fn(x) {
       let #(p, l) = x
-      piece(p, l)
+      piece(p, l, model.indicators |> option.map(pair.first))
     })
   let indicators =
     model.indicators
@@ -56,6 +57,7 @@ fn board(model: Model) -> Element(Message) {
     |> list.map(indicator)
   svg.svg(
     [
+      // event.on_click(types.ClientClickedBackground),
       a.class("bg-orange-100 w-full h-full touch-pinch-zoom overflow-auto"),
     ],
     [
@@ -72,7 +74,7 @@ fn board(model: Model) -> Element(Message) {
 fn hand() -> Element(Message) {
   h.div([a.class("fixed bottom-0 w-full h-1/10")], [
     svg.svg(
-      [a.class("w-full h-[10dvh] bg-red-100 grow touch-none overflow-auto")],
+      [a.class("w-full h-[10dvh] bg-red-100 touch-none")],
       // TODO: Place all pieces without a Location here
       [],
     ),
@@ -80,10 +82,31 @@ fn hand() -> Element(Message) {
 }
 
 // Object-render functions
-fn piece(piece: Piece, location: Location) -> Element(Message) {
-  let fill = case piece.player {
-    Player1 -> "fill-neutral-800 hover:fill-neutral-950 active:fill-neutral-950"
-    Player2 -> "fill-neutral-50 hover:fill-neutral-100 active:fill-neutral-100"
+fn piece(
+  piece: Piece,
+  location: Location,
+  indicator_piece: Option(Piece),
+) -> Element(Message) {
+  let #(inactive_fill, active_fill) = case piece.player {
+    Player1 -> #("fill-neutral-800", "fill-neutral-950")
+    Player2 -> #("fill-neutral-50", "fill-neutral-100")
+  }
+  let #(inactive_stroke, active_stroke) = case piece {
+    Orange(_) -> #("stroke-amber-500", "stroke-amber-600")
+    Purple(_, _) -> #("stroke-violet-400", "stroke-violet-500")
+    Red(_, _) -> #("stroke-amber-700", "stroke-amber-800")
+    Green(_, _) -> #("stroke-lime-500", "stroke-lime-600")
+    Blue(_, _) -> #("stroke-sky-600", "stroke-sky-700")
+  }
+  let style = case indicator_piece {
+    option.Some(p) if p == piece -> tw_classes([active_fill, active_stroke])
+    _ ->
+      tw_classes([
+        inactive_fill,
+        inactive_stroke,
+        "hover:" <> active_stroke,
+        "hover:" <> active_fill,
+      ])
   }
   let stroke = case piece {
     Orange(_) ->
@@ -101,15 +124,16 @@ fn piece(piece: Piece, location: Location) -> Element(Message) {
   svg.path([
     event.on_click(ClientClickedPiece(piece)),
     place(hex_coordinate(location)),
-    tw_classes([
-      fill,
-      stroke,
-      "stroke-2",
-      "origin-center",
-      // Unsure about this one..
-      "[transform-box:fill-box]",
-      "transition duration-100",
-    ]),
+    a.class(
+      tw_classes([
+        style,
+        "stroke-2",
+        "origin-center",
+        // Unsure about this one..
+        "[transform-box:fill-box]",
+        // "transition duration-100", // NOTE: Disable for now, before dom-update stuff is fixed
+      ]),
+    ),
     a.attribute("d", hexagon_path),
   ])
 }
@@ -121,21 +145,22 @@ fn indicator(location: Location) -> Element(Message) {
     event.on_click(ClientClickedIndicator(location)),
     a.attribute("d", hexagon_path),
     place(coord),
-    tw_classes([
-      "fill-blue-200/50",
-      "stroke-blue-200/80",
-      "stroke-2",
-      "origin-center",
-    ]),
+    a.class(
+      tw_classes([
+        "fill-blue-200/50",
+        "stroke-blue-200/80",
+        "stroke-2",
+        "origin-center",
+      ]),
+    ),
   ])
 }
 
 // Helper functions for rendering objects
-fn tw_classes(styles: List(String)) -> Attribute(Message) {
+fn tw_classes(styles: List(String)) -> String {
   styles
   |> string.join(" ")
   |> string.trim
-  |> a.class
 }
 
 // Calculated manually
@@ -192,5 +217,33 @@ fn piece_id(piece: Piece) -> String {
   }
   pid <> "-" <> player_id
 }
+
+const orange_stroke = "stroke-amber-500"
+
+const orange_stroke_active = "stroke-amber-600"
+
+const purple_stroke = "stroke-violet-400"
+
+const purple_stroke_active = "stroke-violet-500"
+
+const red_stroke = "stroke-amber-700"
+
+const red_stroke_active = "stroke-amber-800"
+
+const green_stroke = "stroke-lime-500"
+
+const green_stroke_active = "stroke-lime-600"
+
+const blue_stroke = "stroke-sky-600"
+
+const blue_stroke_active = "stroke-sky-700"
+
+const player1_fill = "fill-neutral-800"
+
+const player_1_fill_active = "fill-neutral-950"
+
+const player2_fill = "fill-neutral-50"
+
+const player_2_fill_active = "fill-neutral-100"
 
 const hexagon_path = "M2.46148 12.8001C2.29321 12.5087 2.20908 12.3629 2.17615 12.208C2.14701 12.0709 2.14701 11.9293 2.17615 11.7922C2.20908 11.6373 2.29321 11.4915 2.46148 11.2001L6.53772 4.13984C6.70598 3.8484 6.79011 3.70268 6.90782 3.5967C7.01196 3.50293 7.13465 3.43209 7.26793 3.38879C7.41856 3.33984 7.58683 3.33984 7.92336 3.33984H16.0758C16.4124 3.33984 16.5806 3.33984 16.7313 3.38879C16.8645 3.43209 16.9872 3.50293 17.0914 3.5967C17.2091 3.70268 17.2932 3.8484 17.4615 4.13984L21.5377 11.2001C21.706 11.4915 21.7901 11.6373 21.823 11.7922C21.8522 11.9293 21.8522 12.0709 21.823 12.208C21.7901 12.3629 21.706 12.5087 21.5377 12.8001L17.4615 19.8604C17.2932 20.1518 17.2091 20.2975 17.0914 20.4035C16.9872 20.4973 16.8645 20.5681 16.7313 20.6114C16.5806 20.6604 16.4124 20.6604 16.0758 20.6604H7.92336C7.58683 20.6604 7.41856 20.6604 7.26793 20.6114C7.13465 20.5681 7.01196 20.4973 6.90782 20.4035C6.79011 20.2975 6.70598 20.1518 6.53772 19.8604L2.46148 12.8001Z"
