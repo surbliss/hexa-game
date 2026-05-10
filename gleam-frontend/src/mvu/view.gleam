@@ -4,6 +4,8 @@ import gleam/dict.{type Dict}
 import gleam/float
 import gleam/int
 import gleam/list
+import gleam/option.{type Option}
+import gleam/pair
 import gleam/string
 import lustre/attribute.{type Attribute} as a
 import lustre/element.{type Element}
@@ -11,9 +13,10 @@ import lustre/element/html as h
 import lustre/element/svg
 import lustre/event
 import mvu/types.{
-  type Location, type Message, type Model, type Piece, Blue, ClientClickedPiece,
-  FirstOf2, FirstOf3, Green, Location, Orange, Player1, Player2, Purple, Red,
-  SecondOf2, SecondOf3, ThirdOf3,
+  type Location, type Message, type Model, type Piece, Blue,
+  ClientClickedIndicator, ClientClickedPiece, FirstOf2, FirstOf3, Green,
+  Location, Orange, Player1, Player2, Purple, Red, SecondOf2, SecondOf3,
+  ThirdOf3,
 }
 
 //-------------------------------------------------
@@ -28,7 +31,7 @@ pub fn view(model: Model) -> Element(Message) {
       ),
     ],
     [
-      board(model.pieces),
+      board(model),
       hand(),
     ],
   )
@@ -38,14 +41,19 @@ pub fn view(model: Model) -> Element(Message) {
 // Private
 //-------------------------------------------------
 // Board, where all pieces and gameplay live
-fn board(pieces: Dict(Piece, Location)) -> Element(Message) {
-  let pieces_list = dict.to_list(pieces)
+fn board(model: Model) -> Element(Message) {
+  let pieces_list = dict.to_list(model.pieces)
   let pieces =
     pieces_list
     |> list.map(fn(x) {
       let #(p, l) = x
       piece(p, l)
     })
+  let indicators =
+    model.indicators
+    |> option.map(pair.second)
+    |> option.unwrap([])
+    |> list.map(indicator)
   svg.svg(
     [
       a.class("bg-orange-100 w-full h-full touch-pinch-zoom overflow-auto"),
@@ -53,8 +61,8 @@ fn board(pieces: Dict(Piece, Location)) -> Element(Message) {
     [
       svg.g(
         // Place (0,0) in the middle of the board
-        [a.class("translate-x-[50vw] translate-y-[50vh] scale-150")],
-        pieces,
+        [a.class("translate-x-[50vw] translate-y-[50vh] scale-250")],
+        list.flatten([pieces, indicators]),
       ),
     ],
   )
@@ -98,12 +106,27 @@ fn piece(piece: Piece, location: Location) -> Element(Message) {
       stroke,
       "stroke-2",
       "origin-center",
-      "scale-200",
       // Unsure about this one..
       "[transform-box:fill-box]",
       "transition duration-100",
     ]),
     a.attribute("d", hexagon_path),
+  ])
+}
+
+fn indicator(location: Location) -> Element(Message) {
+  let coord = hex_coordinate(location)
+
+  svg.path([
+    event.on_click(ClientClickedIndicator(location)),
+    a.attribute("d", hexagon_path),
+    place(coord),
+    tw_classes([
+      "fill-blue-200/50",
+      "stroke-blue-200/80",
+      "stroke-2",
+      "origin-center",
+    ]),
   ])
 }
 

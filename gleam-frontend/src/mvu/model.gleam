@@ -1,10 +1,11 @@
 import gleam/dict
 import gleam/int
 import gleam/list
+import gleam/option
 import mvu/types.{
-  type Location, type Message, type Model, type Piece, Blue, ClientClickedPiece,
-  FirstOf2, Green, Location, Model, Orange, Player1, Player2, Purple, Red,
-  SecondOf2, ThirdOf3,
+  type Location, type Message, type Model, type Piece, Blue,
+  ClientClickedIndicator, ClientClickedPiece, FirstOf2, Green, Location, Model,
+  Orange, Player1, Player2, Purple, Red, SecondOf2, ThirdOf3,
 }
 
 fn compare(x: #(Piece, Location), y: #(Piece, Location)) {
@@ -26,7 +27,7 @@ pub fn init(_args) {
       #(Purple(Player2, SecondOf2), Location(1, 0, 3)),
     ]
     |> list.sort(compare)
-  Model(pieces: dict.from_list(ps))
+  Model(pieces: dict.from_list(ps), indicators: option.None)
 }
 
 pub fn update(model: Model, message: Message) -> Model {
@@ -34,8 +35,24 @@ pub fn update(model: Model, message: Message) -> Model {
     ClientClickedPiece(p) -> {
       // Can't be clicked if not alread in the model
       let assert Ok(Location(x, y, z)) = model.pieces |> dict.get(p)
-      let pieces = model.pieces |> dict.insert(p, Location(x + 1, y - 1, z + 2))
-      Model(pieces:)
+      let adjs = [
+        Location(x + 1, y, z),
+        Location(x, y + 1, z),
+        Location(x - 1, y, z),
+        Location(x, y - 1, z),
+        Location(x + 1, y - 1, z),
+        Location(x - 1, y + 1, z),
+      ]
+      let indicators = option.Some(#(p, adjs))
+      Model(..model, indicators:)
+    }
+    ClientClickedIndicator(l) -> {
+      let assert option.Some(#(p, is)) = model.indicators
+      assert list.contains(is, l)
+      let pieces =
+        model.pieces
+        |> dict.insert(p, l)
+      Model(pieces:, indicators: option.None)
     }
   }
 }

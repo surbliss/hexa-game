@@ -1,11 +1,16 @@
 import gleam/dict.{type Dict}
+import gleam/option.{type Option}
 
 pub type Model {
-  Model(pieces: Dict(Piece, Location))
+  Model(
+    pieces: Dict(Piece, Location),
+    indicators: Option(#(Piece, List(Location))),
+  )
 }
 
 pub type Message {
   ClientClickedPiece(piece: Piece)
+  ClientClickedIndicator(location: Location)
 }
 
 pub type Of2 {
