@@ -4,34 +4,35 @@ import gleam/option.{type Option}
 pub type Model {
   Model(
     pieces: Dict(Piece, Location),
-    indicators: Option(#(Piece, List(Location))),
+    indicators: List(Location),
+    selected_piece: Option(Piece),
   )
 }
 
 pub type Message {
-  ClientClickedPiece(piece: Piece)
-  ClientClickedIndicator(location: Location)
-  ClientClickedBackground
-}
-
-pub type Of2 {
-  FirstOf2
-  SecondOf2
-}
-
-pub type Of3 {
-  FirstOf3
-  SecondOf3
-  ThirdOf3
+  ClientClickPiece(piece: Piece)
+  ClientClickIndicator(location: Location)
+  ClientClickBackground
+  ServerSayHello
+  ServerMovePiece(piece: Piece, new_location: Location)
+  // Add later
+  // ServerRegisteredClient
+  ServerShowIndicators(indicators: List(Location))
 }
 
 pub type Piece {
   Orange(player: Player)
   // IDs below destinguish _which_ of the pieces it is, when there are multiple of the same one
-  Purple(player: Player, id: Of2)
-  Red(player: Player, id: Of2)
-  Green(player: Player, id: Of3)
-  Blue(player: Player, id: Of3)
+  Purple1(player: Player)
+  Purple2(player: Player)
+  Red1(player: Player)
+  Red2(player: Player)
+  Green1(player: Player)
+  Green2(player: Player)
+  Green3(player: Player)
+  Blue1(player: Player)
+  Blue2(player: Player)
+  Blue3(player: Player)
 }
 
 // Client1 = Player1, Client2 = Player2, Spectator for further players, just watching
