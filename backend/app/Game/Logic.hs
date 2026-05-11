@@ -120,6 +120,7 @@ legalMoves state i
       -- Special case for first move for Player 2 (in other cases, the player is not allowed to place next to opposing pieces)      (_, _, Just _, _) | orangeIsInStock state -> [] -- Can't move pieces on board before queen is placed
       (4, _, Nothing, k) | k /= Orange && orangeIsInStock state -> [] -- Queen has to be placed by turn 4 latest
       (_, _, Nothing, _) -> map placement0 $ S.toList $ legalStockMoves state -- If not placed yet, do stock-moves
+      (_, _, Just _, k) | k /= Orange && orangeIsInStock state -> [] -- Cannot move pieces before queen is placed
       -- TODO: Filter these, somehow
       (_, _, Just c, k)
         | i /= NE.head (getStacks state M.! c) -> [] -- Piece not on top of its stack

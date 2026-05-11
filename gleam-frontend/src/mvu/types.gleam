@@ -6,19 +6,29 @@ pub type Model {
     pieces: Dict(Piece, Location),
     indicators: List(Location),
     selected_piece: Option(Piece),
+    current_player: Player,
+    client_role: ClientRole,
   )
 }
 
+pub type ClientRole {
+  Player(Player)
+  Spectator
+}
+
 pub type Message {
-  ClientClickPiece(Piece)
-  ClientClickIndicator(Location)
+  ClientClickPiece(clicked_piece: Piece)
+  ClientClickIndicator(indicator_location: Location)
   ClientClickBackground
   ServerSayHello
-  ServerMovePiece(Piece, Location)
+  ServerMovePiece(piece: Piece, new_location: Location)
   // Add later
   // ServerRegisteredClient
-  ServerShowIndicators(List(Location))
-  ServerInitPieces(List(#(Piece, Location)))
+  ServerShowIndicators(indicator_locations: List(Location))
+  ServerInitClient(
+    client_role: ClientRole,
+    piece_locations: List(#(Piece, Location)),
+  )
 }
 
 pub type Piece {
@@ -34,13 +44,6 @@ pub type Piece {
   Blue1(player: Player)
   Blue2(player: Player)
   Blue3(player: Player)
-}
-
-// Client1 = Player1, Client2 = Player2, Spectator for further players, just watching
-pub type Client {
-  Client1
-  Client2
-  Spectator
 }
 
 pub type Player {

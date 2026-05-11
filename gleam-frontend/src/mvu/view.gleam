@@ -29,6 +29,7 @@ pub fn view(model: Model) -> Element(Message) {
       a.class(
         "flex flex-col h-screen w-screen justify-center items-start select-none",
       ),
+      event.on_click(types.ClientClickBackground),
     ],
     [
       stock_top(model),
@@ -57,13 +58,16 @@ fn board(model: Model) -> Element(Message) {
     |> list.map(pair.first)
   svg.svg(
     [
-      event.on_click(types.ClientClickBackground),
       a.class("bg-orange-100 w-full h-full touch-pinch-zoom"),
     ],
     [
       svg.g(
         // Place (0,0) in the middle of the board
-        [a.class("translate-x-[50vw] translate-y-[50vh] scale-250")],
+        [
+          a.class(
+            "translate-x-[50vw] translate-y-[50vh] scale-200 md:scale-300",
+          ),
+        ],
         all_elements,
       ),
     ],
@@ -78,7 +82,7 @@ fn stock_top(model: Model) -> Element(Message) {
   let placements = list.map(stock_x_z, stock_coordinate)
   let stock_pieces =
     all_pieces(Player2) |> list.zip(placements) |> list.filter(is_in_stock)
-  svg.svg([a.class("fixed top-0 w-full h-20 bg-green-100 touch-none")], [
+  svg.svg([a.class("fixed top-0 w-full h-20 bg-olive-200 touch-none")], [
     svg.g(
       [a.class("translate-x-1/2 translate-y-5 scale-200")],
       list.flatten([
@@ -104,7 +108,7 @@ fn stock_bottom(model: Model) -> Element(Message) {
       let #(p, c) = x
       piece_stock(p, c, model.selected_piece)
     })
-  svg.svg([a.class("fixed bottom-0 w-full h-20 bg-red-100 touch-none")], [
+  svg.svg([a.class("fixed bottom-0 w-full h-20 bg-olive-200 touch-none")], [
     svg.g([a.class("translate-x-1/2 translate-y-5 scale-200")], stock_pieces),
   ])
 }
@@ -182,7 +186,7 @@ fn indicator(location: Location) -> Element(Message) {
     a.class(
       tw_classes([
         "fill-blue-200/50",
-        "stroke-blue-200/80",
+        "stroke-blue-200",
         "stroke-2",
         "origin-center",
       ]),

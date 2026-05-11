@@ -4,8 +4,9 @@ import gleam/result
 import gleam/string
 import lustre/effect.{type Effect}
 import mvu/types.{
-  type Location, type Message, type Piece, Location, Player1, Player2,
-  ServerInitPieces, ServerMovePiece, ServerSayHello, ServerShowIndicators,
+  type Location, type Message, type Piece, Location, Player, Player1, Player2,
+  ServerInitClient, ServerMovePiece, ServerSayHello, ServerShowIndicators,
+  Spectator,
 }
 
 /// Connect to websocket, use inside 'init'
@@ -57,17 +58,28 @@ fn send(msg: String) -> Effect(Message) {
 fn parse_message(msg: String) -> Result(Message, String) {
   case msg {
     "hello " <> _ -> Ok(ServerSayHello)
+    // TODO: Communicate 'next player' here (not trivial, in case a given player has no legal moves)
     "move " <> ps -> {
       use #(p, l) <- result.try(parse_piece_location(ps))
       Ok(ServerMovePiece(p, l))
     }
+    // TODO: Communicate 'current player' here
     "init " <> xs -> {
       let xs = string.split(xs, " ")
       case xs {
-        [_, ..rest] ->
-          rest
-          |> list.try_map(parse_piece_location)
-          |> result.map(ServerInitPieces)
+        [role, ..rest] -> {
+          use piece_placements <- result.try(list.try_map(
+            rest,
+            parse_piece_location,
+          ))
+          use client_role <- result.try(case role {
+            "s" -> Ok(Spectator)
+            "1" -> Ok(Player(Player1))
+            "2" -> Ok(Player(Player2))
+            _ -> Error(Nil)
+          })
+          Ok(ServerInitClient(client_role, piece_placements))
+        }
         [] -> Error(Nil)
       }
     }
