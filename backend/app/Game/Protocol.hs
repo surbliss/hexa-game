@@ -24,6 +24,7 @@ data ServerMessage
   = SRegisterClient
       (Maybe ClientRole) -- Nothing if a new client that needs to be assigned
       (ReplyChan (ClientChan, ClientRole, BoardPositions))
+  | SUnregisterClient ClientRole -- Player 1 or 2 dissconnected
   | SClickPiece ClientRole PieceId
   | SClickIndicator ClientRole PieceId
   deriving (Eq, Show)

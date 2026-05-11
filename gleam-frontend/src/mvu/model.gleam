@@ -36,7 +36,7 @@ pub fn update(model: Model, message: Message) -> #(Model, Effect(Message)) {
     ClientClickPiece(p) -> {
       let selected_piece = case model.client_role {
         Player(x) if p.player == x && model.current_player == x -> Some(p)
-        Spectator -> Some(p)
+        Spectator -> None
         _ -> None
       }
       #(Model(..model, selected_piece:), server.click_piece(p))

@@ -14,9 +14,10 @@ import lustre/element/html as h
 import lustre/element/svg
 import lustre/event
 import mvu/types.{
-  type Location, type Message, type Model, type Piece, type Player, Blue1, Blue2,
-  Blue3, ClientClickIndicator, ClientClickPiece, Green1, Green2, Green3, Orange,
-  Player1, Player2, Purple1, Purple2, Red1, Red2,
+  type ClientRole, type Location, type Message, type Model, type Piece,
+  type Player, Blue1, Blue2, Blue3, ClientClickIndicator, ClientClickPiece,
+  Green1, Green2, Green3, Orange, Player, Player1, Player2, Purple1, Purple2,
+  Red1, Red2, Spectator,
 }
 
 //-------------------------------------------------
@@ -24,18 +25,38 @@ import mvu/types.{
 //-------------------------------------------------
 
 pub fn view(model: Model) -> Element(Message) {
+  let background = case model.client_role {
+    Player(Player1) -> "bg-indigo-50"
+    Player(Player2) -> "bg-orange-100"
+    Spectator -> "bg-mauve-500"
+  }
+  let elements = case model.client_role {
+    // TODO: Rename the stock-functions
+    Player(p) -> [board(model), stock(model, p, "bottom-0")]
+    Spectator -> [
+      stock(model, Player2, "top-0"),
+      board(model),
+      stock(model, Player1, "bottom-0"),
+    ]
+  }
   h.div(
     [
       a.class(
-        "flex flex-col h-screen w-screen justify-center items-start select-none",
+        tw_classes([
+          background,
+          "flex",
+          "flex-col",
+          "h-screen",
+          "w-screen",
+          "justify-center",
+          "items-start",
+          "select-none",
+          "touch-none",
+        ]),
       ),
       event.on_click(types.ClientClickBackground),
     ],
-    [
-      stock_top(model),
-      board(model),
-      stock_bottom(model),
-    ],
+    elements,
   )
 }
 
@@ -58,7 +79,7 @@ fn board(model: Model) -> Element(Message) {
     |> list.map(pair.first)
   svg.svg(
     [
-      a.class("bg-orange-100 w-full h-full touch-pinch-zoom"),
+      a.class("w-full h-full"),
     ],
     [
       svg.g(
@@ -82,7 +103,7 @@ fn stock_top(model: Model) -> Element(Message) {
   let placements = list.map(stock_x_z, stock_coordinate)
   let stock_pieces =
     all_pieces(Player2) |> list.zip(placements) |> list.filter(is_in_stock)
-  svg.svg([a.class("fixed top-0 w-full h-20 bg-olive-200 touch-none")], [
+  svg.svg([a.class("fixed top-0 w-full h-20 bg-olive-200")], [
     svg.g(
       [a.class("translate-x-1/2 translate-y-5 scale-200")],
       list.flatten([
@@ -108,9 +129,40 @@ fn stock_bottom(model: Model) -> Element(Message) {
       let #(p, c) = x
       piece_stock(p, c, model.selected_piece)
     })
-  svg.svg([a.class("fixed bottom-0 w-full h-20 bg-olive-200 touch-none")], [
+  svg.svg([a.class("fixed bottom-0 w-full h-20 bg-olive-200")], [
     svg.g([a.class("translate-x-1/2 translate-y-5 scale-200")], stock_pieces),
   ])
+}
+
+fn stock(model: Model, player: Player, placement: String) -> Element(Message) {
+  let is_in_stock = fn(x: #(Piece, any)) {
+    dict.has_key(model.pieces, x.0) |> bool.negate
+  }
+  let placements = list.map(stock_x_z, stock_coordinate)
+  let stock_pieces =
+    all_pieces(player)
+    |> list.zip(placements)
+    |> list.filter(is_in_stock)
+    |> list.map(fn(x) {
+      let #(p, c) = x
+      piece_stock(p, c, model.selected_piece)
+    })
+  svg.svg(
+    [
+      a.class(
+        tw_classes([
+          "fixed",
+          placement,
+          "w-full",
+          "h-20",
+          "bg-olive-200",
+        ]),
+      ),
+    ],
+    [
+      svg.g([a.class("translate-x-1/2 translate-y-5 scale-200")], stock_pieces),
+    ],
+  )
 }
 
 // Object-render functions

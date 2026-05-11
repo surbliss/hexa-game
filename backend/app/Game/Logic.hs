@@ -2,8 +2,10 @@
 
 module Game.Logic (
   GameState,
+  TurnState (..),
   RenderPosition,
   initialGameState,
+  turnState,
   legalMoves,
   movePiece,
   boardRenderPositions,
@@ -29,8 +31,6 @@ import Game.Protocol (PieceId, RenderPosition (..))
 --- Exported datatypes
 
 -- | All the info about gamestate, that changes throughout. Constructors _not_ exported
-type Stacks = Map Coordinate (NonEmpty PieceId)
-
 data GameState = GameState
   { getPieces :: Vector (Maybe Coordinate)
   , getStacks :: Stacks
@@ -38,7 +38,17 @@ data GameState = GameState
   , currentTurn :: Int
   }
 
+-- Whose turn it is, or, if relevant, if the game is Over
+data TurnState
+  = Player1Turn
+  | Player2Turn
+  | Player1Won
+  | Player2Won
+  | Draw
+
 --- Internal datatypes
+type Stacks = Map Coordinate (NonEmpty PieceId)
+
 data Direction = U | D | UR | DR | UL | DL deriving (Eq, Show, Ord)
 
 -- Combined piece-state
@@ -77,6 +87,12 @@ boardRenderPositions state = V.toList $ V.imap (fmap . renderPos) (getPieces sta
     Nothing -> error "Id of stack not present"
   stacks = getStacks state
   renderPos i c@(Coordinate (x, y)) = RenderPosition (x, y, pieceHeight i $ stacks M.! c)
+
+-- This kinda bleeds out of logic, but would like to avoid exposing any constructors of GameState
+turnState :: GameState -> TurnState
+turnState state = case currentPlayer state of
+  Player1 -> Player1Turn
+  Player2 -> Player2Turn
 
 movePiece :: PieceId -> (Int, Int) -> GameState -> GameState
 movePiece i (x, y) state =

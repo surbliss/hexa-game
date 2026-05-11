@@ -1,7 +1,10 @@
 import gleam/dict.{type Dict}
 import gleam/option.{type Option}
 
+/// NEXT: Split model into 'GameModel' and 'TitleModel'
 pub type Model {
+  // InGame(GameModel)
+  // GameOver(EndScreenModel)
   Model(
     pieces: Dict(Piece, Location),
     indicators: List(Location),

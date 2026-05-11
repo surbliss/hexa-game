@@ -2,10 +2,12 @@ module Game.Server (initServer) where
 
 import Game.Logic (
   GameState,
+  TurnState (..),
   boardRenderPositions,
   initialGameState,
   legalMoves,
   movePiece,
+  turnState,
  )
 import Game.Protocol (
   ClientChan,
@@ -18,12 +20,14 @@ import Game.Protocol (
   renderCoord,
  )
 import GenServer
+import Util
 
 data ServerState = ServerState
   { client1 :: Maybe ClientChan
   , client2 :: Maybe ClientChan
   , spectators :: ClientChan -- Just dup this, if more added
-  , indicators :: Maybe (PieceId, [RenderPosition]) -- What piece do the indicators belong to?
+  , indicators :: Maybe (PieceId, [RenderPosition]) -- Currently active indicators, from the active player
+  , activeClient :: ClientRole
   , gameState :: GameState
   }
 
@@ -38,6 +42,7 @@ initServer = do
           , spectators = spectatorChan
           , indicators = Nothing
           , gameState = initialGameState
+          , activeClient = ActiveClient1
           }
   spawn (handleServerMessage state)
 
@@ -70,38 +75,32 @@ handleServerMessage' state msg = case msg of
 
     serverReply rc (chan, p, boardRenderPositions (gameState new_state))
     pure new_state
-   where
-
-  -- dc <- dupChan c -- NOTE: Remove when only one connection pr. player is enforced
-  -- serverReply rc (dc, p, boardRenderPositions (gameState state))
-  -- pure state
-
-  -- (c, p) = case client of
-  --   Nothing -> (spectators state, Spectator)
-  --   -- Just c' -> (getClientChan c' state, c') -- TEMP: For testing, spectator can move both
-  --   Just _ -> (spectators state, Spectator)
-  SClickPiece client i -> do
-    case getClientChan client state of
-      Just c -> writeChan c (CShowIndicators indRenderPositions)
-      Nothing -> pure ()
-    pure $ state{indicators = Just (i, indRenderPositions)}
+  SClickPiece client i ->
+    if client /= activeClient state
+      then pure state
+      else do
+        case getClientChan client state of
+          Just c -> writeChan c (CShowIndicators indRenderPositions)
+          Nothing -> pure ()
+        pure $ state{indicators = Just (i, indRenderPositions)}
    where
     indRenderPositions = legalMoves (gameState state) i
-  SClickIndicator client i -> case (client, indicators state) of
+  --- Here is where the active player might switch!
+  SClickIndicator client i -> case (activeClient state, indicators state) of
+    (ac, _) | client /= ac -> pure state
     (_, Nothing) -> error "No indicators stored, rip"
-    (Spectator, _) -> pure state{indicators = Nothing} -- Don't react to spectator pressing and indicator
-    (_, Just (pid, cs)) ->
-      case getClientChan client state of
-        Just c -> do
-          writeChan c (CMovePiece (pid, moveTo))
-          pure $
-            state
-              { indicators = Nothing
-              , gameState = movePiece pid (renderCoord moveTo) (gameState state)
-              }
-        Nothing -> pure state
+    (_, Just (pid, cs)) -> do
+      sendAll state (CMovePiece (pid, moveTo))
+      pure $ putGameState newGameState state
      where
       moveTo = cs !! i
+      newGameState = movePiece pid (renderCoord moveTo) (gameState state)
+  SUnregisterClient role -> case role of
+    ActiveClient1 -> pure state{client1 = Nothing}
+    ActiveClient2 -> pure state{client2 = Nothing}
+    Spectator -> do
+      warn "Spectator disconnected, should not happen"
+      pure state
 
 ---------------------------------------------------
 -- Helper-functions
@@ -110,3 +109,27 @@ getClientChan :: ClientRole -> ServerState -> Maybe ClientChan
 getClientChan ActiveClient1 = client1
 getClientChan ActiveClient2 = client2
 getClientChan Spectator = Just . spectators
+
+putGameState :: GameState -> ServerState -> ServerState
+putGameState gstate sstate =
+  sstate
+    { gameState = gstate
+    , activeClient = nextActiveClient
+    , indicators = Nothing
+    }
+ where
+  nextActiveClient = case turnState gstate of
+    Player1Turn -> ActiveClient1
+    Player2Turn -> ActiveClient2
+    -- No more actions then
+    Player1Won -> Spectator
+    Player2Won -> Spectator
+    Draw -> Spectator
+
+sendAll :: ServerState -> ClientMessage -> IO ()
+sendAll state msg = do
+  send (client1 state)
+  send (client2 state)
+  writeChan (spectators state) msg
+ where
+  send c = mapM_ (`writeChan` msg) c

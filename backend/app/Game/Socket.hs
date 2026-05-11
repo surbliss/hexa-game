@@ -2,6 +2,8 @@
 
 module Game.Socket (socketApp) where
 
+import Control.Exception (catch)
+import Control.Exception.Base (SomeException)
 import Control.Monad (forever)
 import Data.Text (Text)
 import Data.Text qualified as T
@@ -9,7 +11,7 @@ import Game.Protocol (
   ClientMessage (CInitPlayer),
   ClientRole (..),
   GameServer,
-  ServerMessage (SRegisterClient),
+  ServerMessage (SRegisterClient, SUnregisterClient),
   encode,
   parseServerMessage,
  )
@@ -36,10 +38,16 @@ socketApp gameServer pendingConnection = do
     echo $ "receiving: " <> show msg
     sendTextData con (encode msg)
   sendTextData con (encode $ CInitPlayer client pieces)
-  forever $ do
-    (msg :: Text) <- receiveData con
-    echo $ "sending: " <> show msg
-    serverSend gameServer (parseServerMessage client msg)
+  let
+    socketLoop = do
+      (msg :: Text) <- receiveData con
+      echo $ "sending: " <> show msg
+      serverSend gameServer (parseServerMessage client msg)
+    handleConnectionClose :: SomeException -> IO ()
+    handleConnectionClose e = do
+      warn $ "Client closed due to exception: " <> show e
+      serverSend gameServer $ SUnregisterClient client
+  forever socketLoop `catch` handleConnectionClose
 
 getClientKind :: Text -> Maybe ClientRole
 getClientKind "new" = Nothing
