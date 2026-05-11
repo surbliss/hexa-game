@@ -11,6 +11,7 @@ module Game.Logic (
 
 import Control.Exception (assert)
 import Control.Monad (guard)
+import Data.List (find)
 import Data.List.NonEmpty (NonEmpty ((:|)), (<|))
 import Data.List.NonEmpty qualified as NE
 import Data.Map.Strict (Map)
@@ -68,9 +69,14 @@ initialGameState =
     }
 
 boardRenderPositions :: GameState -> [Maybe RenderPosition]
-boardRenderPositions state = V.toList $ V.map (fmap renderPos) (getPieces state)
+boardRenderPositions state = V.toList $ V.imap (fmap . renderPos) (getPieces state)
  where
-  renderPos c@(Coordinate (x, y)) = RenderPosition (x, y, height (getStacks state) c)
+  hs = NE.iterate (+ 1) (0 :: Int)
+  pieceHeight i ps = case find (\(_, j) -> i == j) $ NE.toList $ NE.zip hs $ NE.reverse ps of
+    Just (h, _) -> h
+    Nothing -> error "Id of stack not present"
+  stacks = getStacks state
+  renderPos i c@(Coordinate (x, y)) = RenderPosition (x, y, pieceHeight i $ stacks M.! c)
 
 movePiece :: PieceId -> (Int, Int) -> GameState -> GameState
 movePiece i (x, y) state =
@@ -285,7 +291,7 @@ purpleMoves stacks c = S.toList $ adjGround <> adjPlaced
   adjGround = adjs `S.intersection` rim
 
 blueMoves :: Stacks -> Coordinate -> [Coordinate]
-blueMoves stacks c = S.toList $ blueIter S.empty (S.singleton c) (board stacks)
+blueMoves stacks c = S.toList $ blueIter S.empty (S.singleton c) (S.delete c $ boardRim stacks)
  where
   blueIter before current remaining
     | S.null current = before
@@ -296,8 +302,10 @@ blueMoves stacks c = S.toList $ blueIter S.empty (S.singleton c) (board stacks)
           (nexts)
           (remaining \\ nexts)
    where
-    nextsAll = S.unions $ S.map (S.fromList . (validSteps stacks)) current
-    nexts = (nextsAll \\ before) \\ current
+    allSteps = S.unions $ S.map (S.fromList . (validSteps stacks)) current
+    nexts = remaining `S.intersection` allSteps
+
+-- nexts = (nextsAll \\ before) \\ current
 
 greenMoves :: Stacks -> Coordinate -> [Coordinate]
 greenMoves stacks coord = S.toList validFrees

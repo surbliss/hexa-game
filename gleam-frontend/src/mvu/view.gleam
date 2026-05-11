@@ -6,6 +6,7 @@ import gleam/float
 import gleam/int
 import gleam/list
 import gleam/option.{type Option}
+import gleam/pair
 import gleam/string
 import lustre/attribute.{type Attribute} as a
 import lustre/element.{type Element}
@@ -42,15 +43,18 @@ pub fn view(model: Model) -> Element(Message) {
 //-------------------------------------------------
 // Board, where all pieces and gameplay live
 fn board(model: Model) -> Element(Message) {
-  let pieces_list = dict.to_list(model.pieces)
   let pieces =
-    pieces_list
-    |> list.sort(fn(x, y) { int.compare(x.1.z, y.1.z) })
+    dict.to_list(model.pieces)
     |> list.map(fn(x) {
       let #(p, l) = x
-      piece_board(p, l, model.selected_piece)
+      #(piece_board(p, l, model.selected_piece), l)
     })
-  let indicators = model.indicators |> list.map(indicator)
+  let indicators = model.indicators |> list.map(fn(l) { #(indicator(l), l) })
+  let all_elements =
+    [pieces, indicators]
+    |> list.flatten()
+    |> list.sort(fn(x, y) { int.compare(x.1.z, y.1.z) })
+    |> list.map(pair.first)
   svg.svg(
     [
       event.on_click(types.ClientClickBackground),
@@ -60,7 +64,7 @@ fn board(model: Model) -> Element(Message) {
       svg.g(
         // Place (0,0) in the middle of the board
         [a.class("translate-x-[50vw] translate-y-[50vh] scale-250")],
-        list.flatten([pieces, indicators]),
+        all_elements,
       ),
     ],
   )
@@ -169,7 +173,6 @@ fn piece_style(piece: Piece, indicator_piece: Option(Piece)) -> String {
 }
 
 fn indicator(location: Location) -> Element(Message) {
-  echo location
   let coord = hex_coordinate(location)
 
   svg.path([

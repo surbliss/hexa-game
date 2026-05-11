@@ -7,6 +7,7 @@ import Data.List (intercalate)
 import Data.Maybe (isNothing, mapMaybe)
 import Data.Text (Text)
 import Data.Text qualified as T
+import Debug.Trace (traceShowId)
 import GenServer
 import Util
 
@@ -76,12 +77,12 @@ instance Encodable ClientRole where
   encode ActiveClient2 = "2"
   encode Spectator = "s"
 
-instance Encodable [Maybe RenderPosition] where
+instance Encodable BoardPositions where
   encode xs = text
    where
     validPiece (i, Just coord) = Just $ encode (i, coord)
     validPiece (_, Nothing) = Nothing
-    valids = mapMaybe validPiece $ zip [0 :: PieceId ..] xs
+    valids = mapMaybe validPiece $ zip [0 :: PieceId ..] (traceShowId xs)
     text = T.intercalate " " valids
 
 -- Decoding
