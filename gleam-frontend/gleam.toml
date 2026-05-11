@@ -6,7 +6,7 @@ target = "javascript"
 # your project to the Hex package manager.
 #
 # description = ""
-# licences = ["Apache-2.0"]
+licences = ["AGPL-3.0-only"]
 # repository = { type = "github", user = "", repo = "" }
 # links = [{ title = "Website", href = "" }]
 #

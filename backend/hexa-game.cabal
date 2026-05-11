@@ -3,15 +3,16 @@ name: hexa-game
 version: 0.1.0.0
 -- synopsis:
 -- description:
-license: BSD-3-Clause
+license: AGPL-3.0-only
+-- Copy of top-level LICENSE file
 license-file: LICENSE
 author: Thomas
 maintainer: thomas.dev@surlykke.dk
 -- copyright:
 category: Game
 build-type: Simple
-extra-doc-files: CHANGELOG.md
 
+-- extra-doc-files: CHANGELOG.md
 common warnings
   ghc-options: -Wall
 
