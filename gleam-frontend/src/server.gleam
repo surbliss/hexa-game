@@ -4,8 +4,8 @@ import gleam/result
 import gleam/string
 import lustre/effect.{type Effect}
 import mvu/types.{
-  type Message, type Piece, Location, ServerMovePiece, ServerSayHello,
-  ServerShowIndicators,
+  type Location, type Message, type Piece, Location, Player1, Player2,
+  ServerInitPieces, ServerMovePiece, ServerSayHello, ServerShowIndicators,
 }
 
 /// Connect to websocket, use inside 'init'
@@ -29,8 +29,8 @@ pub fn click_indicator(indicator_index: Int) -> Effect(Message) {
 
 fn piece_id(piece: Piece) -> String {
   let player_offset = case piece.player {
-    types.Player1 -> 0
-    types.Player2 -> 11
+    Player1 -> 0
+    Player2 -> 11
   }
   let piece_id = case piece {
     types.Blue1(_) -> 0
@@ -57,48 +57,64 @@ fn send(msg: String) -> Effect(Message) {
 fn parse_message(msg: String) -> Result(Message, String) {
   case msg {
     "hello " <> _ -> Ok(ServerSayHello)
-    "move " <> ps ->
-      case string.split(ps, ",") |> list.try_map(int.parse) {
-        Ok([i, x, y, z]) ->
-          ServerMovePiece(
-            piece: parse_piece(i),
-            new_location: Location(x, y, z),
-          )
-          |> Ok
-        _ -> Error(msg)
+    "move " <> ps -> {
+      use #(p, l) <- result.try(parse_piece_location(ps))
+      Ok(ServerMovePiece(p, l))
+    }
+    "init " <> xs -> {
+      let xs = string.split(xs, " ")
+      case xs {
+        [_, ..rest] ->
+          rest
+          |> list.try_map(parse_piece_location)
+          |> result.map(ServerInitPieces)
+        [] -> Error(Nil)
       }
-    "init " <> _ -> {
-      Ok(ServerSayHello)
     }
     "show-indicators " <> is -> {
       is
       |> string.split(" ")
       |> list.try_map(parse_location)
       |> result.map(ServerShowIndicators)
-      |> result.replace_error(msg)
     }
     "show-indicators" -> {
       // No space after 'show-indicators', so list is empty
       Ok(ServerShowIndicators([]))
     }
 
-    _ -> Error(msg)
+    _ -> Error(Nil)
+  }
+  |> result.replace_error("Invalid message:" <> msg)
+}
+
+fn parse_piece_location(text: String) -> Result(#(Piece, Location), Nil) {
+  case text |> string.split_once(",") {
+    Ok(#(p_str, l_str)) -> {
+      use p <- result.try(parse_piece(p_str))
+      use l <- result.try(parse_location(l_str))
+      Ok(#(p, l))
+    }
+    Error(Nil) -> Error(Nil)
   }
 }
 
-fn parse_location(text: String) -> Result(types.Location, String) {
+fn parse_location(text: String) -> Result(Location, Nil) {
   case text |> string.split(",") |> list.try_map(int.parse) {
     Ok([x, y, z]) -> Ok(Location(x, y, z))
-    _ -> Error(text)
+    _ -> Error(Nil)
   }
 }
 
-fn parse_piece(id: Int) -> Piece {
-  let player = case id {
-    _ if 0 <= id && id <= 10 -> types.Player1
-    _ if 11 <= id && id <= 21 -> types.Player2
-    _ -> panic as { "ID out of range: " <> int.to_string(id) }
-  }
+fn parse_piece(id: String) -> Result(Piece, Nil) {
+  use id <- result.try(int.parse(id))
+  use player <- result.try(case id {
+    _ if 0 <= id && id <= 10 -> Ok(Player1)
+    _ if 11 <= id && id <= 21 -> Ok(Player2)
+    _ -> {
+      echo "ID out of range: " <> int.to_string(id)
+      Error(Nil)
+    }
+  })
   let kind = case id % 11 {
     0 -> types.Blue1
     1 -> types.Blue2
@@ -113,7 +129,7 @@ fn parse_piece(id: Int) -> Piece {
     10 -> types.Orange
     _ -> panic as "Found new modulo 11 number, sheet"
   }
-  kind(player)
+  Ok(kind(player))
 }
 
 // parse_location

@@ -10,14 +10,15 @@ pub type Model {
 }
 
 pub type Message {
-  ClientClickPiece(piece: Piece)
-  ClientClickIndicator(location: Location)
+  ClientClickPiece(Piece)
+  ClientClickIndicator(Location)
   ClientClickBackground
   ServerSayHello
-  ServerMovePiece(piece: Piece, new_location: Location)
+  ServerMovePiece(Piece, Location)
   // Add later
   // ServerRegisteredClient
-  ServerShowIndicators(indicators: List(Location))
+  ServerShowIndicators(List(Location))
+  ServerInitPieces(List(#(Piece, Location)))
 }
 
 pub type Piece {
