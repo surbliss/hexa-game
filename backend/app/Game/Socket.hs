@@ -30,14 +30,14 @@ socketApp gameServer pendingConnection = do
   con <- acceptRequest pendingConnection
   -- Get player info (their first message must be 'connect <token>')
   text <- receiveData con
-  (outChan, client, pieces) <- case T.splitOn " " text of
+  (outChan, client, turn, pieces) <- case T.splitOn " " text of
     ["connect", token] -> requestReply gameServer $ SRegisterClient $ getClientKind token
     _ -> bug text
   _ <- forkIO $ forever $ do
     msg <- readChan outChan
     echo $ "receiving: " <> show msg
     sendTextData con (encode msg)
-  sendTextData con (encode $ CInitPlayer client pieces)
+  sendTextData con (encode $ CInitPlayer client turn pieces)
   let
     socketLoop = do
       (msg :: Text) <- receiveData con

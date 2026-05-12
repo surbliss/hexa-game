@@ -5,7 +5,7 @@ import gleam/dict
 import gleam/float
 import gleam/int
 import gleam/list
-import gleam/option.{type Option}
+import gleam/option.{type Option, Some}
 import gleam/pair
 import gleam/string
 import lustre/attribute.{type Attribute} as a
@@ -23,14 +23,12 @@ import mvu/types.{
 //-------------------------------------------------
 // Public
 //-------------------------------------------------
-
 pub fn view(model: Model) -> Element(Message) {
   let background = case model.client_role {
     Player(_) -> "bg-orange-100"
     Spectator -> "bg-mauve-200"
   }
   let elements = case model.client_role {
-    // TODO: Rename the stock-functions
     Player(p) -> [board(model), stock(model, p, "bottom-0")]
     Spectator -> [
       stock(model, Player2, "top-0"),
@@ -68,7 +66,7 @@ fn board(model: Model) -> Element(Message) {
     dict.to_list(model.pieces)
     |> list.map(fn(x) {
       let #(p, l) = x
-      #(string.inspect(p), #(piece_board(p, l, model.selected_piece), l))
+      #("b-" <> string.inspect(p), #(piece_board(p, l, model.selected_piece), l))
     })
   let indicators =
     model.indicators
@@ -95,8 +93,9 @@ fn board(model: Model) -> Element(Message) {
     |> list.max(float.compare)
 
   let phone_scale = case dist_center_x, dist_center_y {
-    Ok(x), Ok(y) if x >. 80.0 || y >. 125.0 -> "scale-150"
-    Ok(x), Ok(y) if x >. 60.0 || y >. 80.0 -> "scale-200"
+    Ok(x), Ok(y) if x >. 60.0 || y >. 125.0 -> "scale-150"
+    Ok(x), Ok(y) if x >. 50.0 || y >. 80.0 -> "scale-175"
+    Ok(x), Ok(y) if x >. 40.0 || y >. 80.0 -> "scale-200"
     _, _ -> "scale-250"
   }
   let laptop_scale = case dist_center_y {
@@ -122,9 +121,7 @@ fn board(model: Model) -> Element(Message) {
               "translate-y-[40vh]",
               phone_scale,
               laptop_scale,
-              "will-change-transform",
               "transition duration-150",
-              "transition-normal",
             ]),
           ),
         ],
@@ -147,7 +144,7 @@ fn stock(model: Model, player: Player, placement: String) -> Element(Message) {
       let #(p, c) = x
       piece_stock(p, c, model.selected_piece)
     })
-  let background = case player == model.current_player {
+  let background = case Some(player) == model.current_player {
     True -> "bg-lime-100"
     False -> "bg-olive-500"
   }
@@ -212,7 +209,7 @@ fn piece_style(piece: Piece, indicator_piece: Option(Piece)) -> String {
     Blue1(_) | Blue2(_) | Blue3(_) -> #("stroke-sky-600", "stroke-sky-800")
   }
   let style = case indicator_piece {
-    option.Some(p) if p == piece -> tw_classes([active_fill, active_stroke])
+    Some(p) if p == piece -> tw_classes([active_fill, active_stroke])
     _ -> tw_classes([inactive_fill, inactive_stroke])
   }
   tw_classes([
@@ -221,8 +218,8 @@ fn piece_style(piece: Piece, indicator_piece: Option(Piece)) -> String {
     "origin-center",
     "[transform-box:fill-box]",
     "transition duration-200",
-    "will-change-transform",
-    // "transition duration-200",
+    // "will-change-transform",
+  // "transition duration-200",
   ])
 }
 

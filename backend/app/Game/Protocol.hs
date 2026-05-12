@@ -15,18 +15,27 @@ import Util
 type BoardPositions = [Maybe RenderPosition] -- NOTE: _Has_ to be precisely length 22
 data ClientMessage
   = CHello PieceId -- Tmp, for testing
-  | CInitPlayer ClientRole BoardPositions -- NOTE: _Has_ to be length 22
-  | CMovePiece (PieceId, RenderPosition)
+  | CInitPlayer ClientRole TurnState BoardPositions -- NOTE: _Has_ to be length 22
+  | CMovePiece TurnState (PieceId, RenderPosition)
   | CShowIndicators [RenderPosition] -- TODO: Add ID Indicators too!
   deriving (Eq, Show)
 
 data ServerMessage
   = SRegisterClient
       (Maybe ClientRole) -- Nothing if a new client that needs to be assigned
-      (ReplyChan (ClientChan, ClientRole, BoardPositions))
+      (ReplyChan (ClientChan, ClientRole, TurnState, BoardPositions))
   | SUnregisterClient ClientRole -- Player 1 or 2 dissconnected
   | SClickPiece ClientRole PieceId
   | SClickIndicator ClientRole PieceId
+  deriving (Eq, Show)
+
+-- Whose turn it is, or, if relevant, if the game is Over
+data TurnState
+  = Player1Turn
+  | Player2Turn
+  | Player1Won
+  | Player2Won
+  | Draw
   deriving (Eq, Show)
 
 --- Server
@@ -60,9 +69,9 @@ instance Encodable ClientMessage where
   encode msg = case msg of
     CHello i -> "hello " <> T.show i
     -- No trailing spaces, if nothing placed yet!
-    CInitPlayer clientKind xs | all isNothing xs -> T.intercalate " " ["init", encode clientKind]
-    CInitPlayer player xs -> T.intercalate " " ["init", encode player, encode xs]
-    CMovePiece piec -> "move " <> encode piec
+    CInitPlayer clientKind turn xs | all isNothing xs -> traceShowId $ T.intercalate " " ["init", encode clientKind, encode turn]
+    CInitPlayer clientKind turn xs -> T.intercalate " " ["init", encode clientKind, encode turn, encode xs]
+    CMovePiece turn piec -> T.intercalate " " ["move", encode turn, encode piec]
     CShowIndicators xs
       | null xs -> "show-indicators"
       | otherwise -> "show-indicators " <> T.intercalate " " (map encode xs)
@@ -77,6 +86,13 @@ instance Encodable ClientRole where
   encode ActiveClient1 = "1"
   encode ActiveClient2 = "2"
   encode Spectator = "s"
+
+instance Encodable TurnState where
+  encode Player1Turn = "t1"
+  encode Player2Turn = "t2"
+  encode Player1Won = "n"
+  encode Player2Won = "n"
+  encode Draw = "n"
 
 instance Encodable BoardPositions where
   encode xs = text

@@ -73,7 +73,7 @@ handleServerMessage' state msg = case msg of
           pure (c, ActiveClient2, state{client2 = Just c})
         (Just _, Just _) -> pure (sc, Spectator, state)
 
-    serverReply rc (chan, p, boardRenderPositions (gameState new_state))
+    serverReply rc (chan, p, turnState (gameState new_state), boardRenderPositions (gameState new_state))
     pure new_state
   SClickPiece client i ->
     if client /= activeClient state
@@ -90,7 +90,7 @@ handleServerMessage' state msg = case msg of
     (ac, _) | client /= ac -> pure state
     (_, Nothing) -> error "No indicators stored, rip"
     (_, Just (pid, cs)) -> do
-      sendAll state (CMovePiece (pid, moveTo))
+      sendAll state (CMovePiece (turnState newGameState) (pid, moveTo))
       pure $ putGameState newGameState state
      where
       moveTo = cs !! i

@@ -23,7 +23,7 @@ import Data.Set qualified as S
 import Data.Vector (Vector, (!), (//))
 import Data.Vector qualified as V
 import Debug.Trace (trace, traceShowId)
-import Game.Protocol (PieceId, RenderPosition (..))
+import Game.Protocol (PieceId, RenderPosition (..), TurnState (..))
 
 ---------------------------------------------------
 -- Data-types
@@ -37,14 +37,6 @@ data GameState = GameState
   , currentPlayer :: Player
   , currentTurn :: Int
   }
-
--- Whose turn it is, or, if relevant, if the game is Over
-data TurnState
-  = Player1Turn
-  | Player2Turn
-  | Player1Won
-  | Player2Won
-  | Draw
 
 --- Internal datatypes
 type Stacks = Map Coordinate (NonEmpty PieceId)

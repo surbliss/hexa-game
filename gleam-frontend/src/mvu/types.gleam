@@ -9,7 +9,8 @@ pub type Model {
     pieces: Dict(Piece, Location),
     indicators: List(Location),
     selected_piece: Option(Piece),
-    current_player: Player,
+    current_player: Option(Player),
+    // None when not connected yet, or game over
     client_role: ClientRole,
   )
 }
@@ -24,12 +25,17 @@ pub type Message {
   ClientClickIndicator(indicator_location: Location)
   ClientClickBackground
   ServerSayHello
-  ServerMovePiece(piece: Piece, new_location: Location)
+  ServerMovePiece(
+    piece: Piece,
+    new_location: Location,
+    new_current_player: Option(Player),
+  )
   // Add later
   // ServerRegisteredClient
   ServerShowIndicators(indicator_locations: List(Location))
   ServerInitClient(
     client_role: ClientRole,
+    current_player: Option(Player),
     piece_locations: List(#(Piece, Location)),
   )
 }

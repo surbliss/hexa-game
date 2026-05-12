@@ -3,10 +3,9 @@ import gleam/list
 import gleam/option.{None, Some}
 import lustre/effect.{type Effect}
 import mvu/types.{
-  type Location, type Message, type Model, type Player, ClientClickBackground,
-  ClientClickIndicator, ClientClickPiece, Model, Player, Player1, Player2,
-  ServerInitClient, ServerMovePiece, ServerSayHello, ServerShowIndicators,
-  Spectator,
+  type Location, type Message, type Model, ClientClickBackground,
+  ClientClickIndicator, ClientClickPiece, Model, Player, ServerInitClient,
+  ServerMovePiece, ServerSayHello, ServerShowIndicators, Spectator,
 }
 import server
 
@@ -16,7 +15,7 @@ pub fn init(_args) {
       pieces: dict.new(),
       indicators: [],
       selected_piece: None,
-      current_player: Player1,
+      current_player: None,
       client_role: Spectator,
       // Default until info from server,
     )
@@ -24,18 +23,11 @@ pub fn init(_args) {
   #(model, effect)
 }
 
-fn next_player(player: Player) -> Player {
-  case player {
-    Player1 -> Player2
-    Player2 -> Player1
-  }
-}
-
 pub fn update(model: Model, message: Message) -> #(Model, Effect(Message)) {
   case message {
     ClientClickPiece(p) -> {
       let selected_piece = case model.client_role {
-        Player(x) if p.player == x && model.current_player == x -> Some(p)
+        Player(x) if p.player == x && model.current_player == Some(x) -> Some(p)
         Spectator -> None
         _ -> None
       }
@@ -58,20 +50,21 @@ pub fn update(model: Model, message: Message) -> #(Model, Effect(Message)) {
     ServerShowIndicators(inds) -> {
       #(Model(..model, indicators: inds), effect.none())
     }
-    ServerMovePiece(piece, new_location) -> {
+    ServerMovePiece(piece, new_location, new_current_player) -> {
       let pieces = model.pieces |> dict.insert(piece, new_location)
       #(
         Model(
           ..model,
+          current_player: new_current_player,
           pieces:,
-          current_player: next_player(model.current_player),
+          // current_player: next_player(model.current_player),
         ),
         effect.none(),
       )
     }
-    ServerInitClient(client_role:, piece_locations:) -> {
+    ServerInitClient(client_role:, piece_locations:, current_player:) -> {
       let pieces = dict.from_list(piece_locations)
-      #(Model(..model, pieces:, client_role:), effect.none())
+      #(Model(..model, pieces:, client_role:, current_player:), effect.none())
     }
   }
 }

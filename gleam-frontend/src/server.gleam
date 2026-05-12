@@ -1,12 +1,13 @@
 import gleam/int
 import gleam/list
+import gleam/option.{type Option, None, Some}
 import gleam/result
 import gleam/string
 import lustre/effect.{type Effect}
 import mvu/types.{
-  type Location, type Message, type Piece, Location, Player, Player1, Player2,
-  ServerInitClient, ServerMovePiece, ServerSayHello, ServerShowIndicators,
-  Spectator,
+  type Location, type Message, type Piece, type Player, Location, Player,
+  Player1, Player2, ServerInitClient, ServerMovePiece, ServerSayHello,
+  ServerShowIndicators, Spectator,
 }
 
 /// Connect to websocket, use inside 'init'
@@ -59,26 +60,29 @@ fn parse_message(msg: String) -> Result(Message, String) {
   case msg {
     "hello " <> _ -> Ok(ServerSayHello)
     // TODO: Communicate 'next player' here (not trivial, in case a given player has no legal moves)
-    "move " <> ps -> {
+    "move " <> rest -> {
+      use #(turn, ps) <- result.try(string.split_once(rest, " "))
+      use turn <- result.try(parse_turn(turn))
       use #(p, l) <- result.try(parse_piece_location(ps))
-      Ok(ServerMovePiece(p, l))
+      Ok(ServerMovePiece(p, l, turn))
     }
     // TODO: Communicate 'current player' here
-    "init " <> xs -> {
-      let xs = string.split(xs, " ")
-      case xs {
-        [role, ..rest] -> {
+    "init " <> rest -> {
+      use #(role, rest) <- result.try(string.split_once(rest, " "))
+      use client_role <- result.try(case role {
+        "s" -> Ok(Spectator)
+        "1" -> Ok(Player(Player1))
+        "2" -> Ok(Player(Player2))
+        _ -> Error(Nil)
+      })
+      case string.split(rest, " ") {
+        [turn, ..locs] -> {
+          use turn <- result.try(parse_turn(turn))
           use piece_placements <- result.try(list.try_map(
-            rest,
+            locs,
             parse_piece_location,
           ))
-          use client_role <- result.try(case role {
-            "s" -> Ok(Spectator)
-            "1" -> Ok(Player(Player1))
-            "2" -> Ok(Player(Player2))
-            _ -> Error(Nil)
-          })
-          Ok(ServerInitClient(client_role, piece_placements))
+          Ok(ServerInitClient(client_role, turn, piece_placements))
         }
         [] -> Error(Nil)
       }
@@ -144,7 +148,14 @@ fn parse_piece(id: String) -> Result(Piece, Nil) {
   Ok(kind(player))
 }
 
-// parse_location
+fn parse_turn(text: String) -> Result(Option(Player), Nil) {
+  case text {
+    "t1" -> Ok(Some(Player1))
+    "t2" -> Ok(Some(Player2))
+    "n" -> Ok(None)
+    _ -> Error(Nil)
+  }
+}
 
 @external(javascript, "./ffi.js", "connect")
 fn ffi_connect(
