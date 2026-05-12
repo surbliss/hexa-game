@@ -101,10 +101,19 @@ handleServerMessage' state msg = case msg of
     Spectator -> do
       warn "Spectator disconnected, should not happen"
       pure state
+  SRestartGame -> do
+    let newGame = initialGameState
+        initClient r (Just c) = writeChan c $ CInitPlayer r (turnState newGame) (boardRenderPositions newGame)
+        initClient _ Nothing = pure ()
+    initClient ActiveClient1 (client1 state)
+    initClient ActiveClient2 (client2 state)
+    initClient Spectator (Just (spectators state))
+    pure $ putGameState newGame state
 
 ---------------------------------------------------
 -- Helper-functions
 ---------------------------------------------------
+
 getClientChan :: ClientRole -> ServerState -> Maybe ClientChan
 getClientChan ActiveClient1 = client1
 getClientChan ActiveClient2 = client2

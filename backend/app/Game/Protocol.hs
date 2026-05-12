@@ -27,6 +27,7 @@ data ServerMessage
   | SUnregisterClient ClientRole -- Player 1 or 2 dissconnected
   | SClickPiece ClientRole PieceId
   | SClickIndicator ClientRole PieceId
+  | SRestartGame
   deriving (Eq, Show)
 
 -- Whose turn it is, or, if relevant, if the game is Over
@@ -107,4 +108,5 @@ parseServerMessage :: ClientRole -> Text -> ServerMessage
 parseServerMessage client text = case T.splitOn " " text of
   ["click", i] -> SClickPiece client (read (T.unpack i))
   ["click-indicator", i] -> SClickIndicator client (read (T.unpack i))
+  ["restart"] -> SRestartGame
   other -> bug other

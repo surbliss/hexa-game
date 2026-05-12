@@ -24,6 +24,7 @@ pub type Message {
   ClientClickPiece(clicked_piece: Piece)
   ClientClickIndicator(indicator_location: Location)
   ClientClickBackground
+  ClientRequestRestart
   ServerSayHello
   ServerMovePiece(
     piece: Piece,

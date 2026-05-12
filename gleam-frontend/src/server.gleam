@@ -29,6 +29,10 @@ pub fn click_indicator(indicator_index: Int) -> Effect(Message) {
   send("click-indicator " <> indicator_index |> int.to_string)
 }
 
+pub fn restart() -> Effect(Message) {
+  send("restart")
+}
+
 fn piece_id(piece: Piece) -> String {
   let player_offset = case piece.player {
     Player1 -> 0

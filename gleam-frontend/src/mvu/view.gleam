@@ -5,7 +5,7 @@ import gleam/dict
 import gleam/float
 import gleam/int
 import gleam/list
-import gleam/option.{type Option, Some}
+import gleam/option.{type Option, None, Some}
 import gleam/pair
 import gleam/string
 import lustre/attribute.{type Attribute} as a
@@ -28,9 +28,10 @@ pub fn view(model: Model) -> Element(Message) {
     Player(_) -> "bg-orange-100"
     Spectator -> "bg-mauve-200"
   }
-  let elements = case model.client_role {
-    Player(p) -> [board(model), stock(model, p, "bottom-0")]
-    Spectator -> [
+  let elements = case model.current_player, model.client_role {
+    None, _ -> [board(model)]
+    Some(_), Player(p) -> [restart(), board(model), stock(model, p, "bottom-0")]
+    Some(_), Spectator -> [
       stock(model, Player2, "top-0"),
       board(model),
       stock(model, Player1, "bottom-0"),
@@ -60,25 +61,39 @@ pub fn view(model: Model) -> Element(Message) {
 //-------------------------------------------------
 // Private
 //-------------------------------------------------
+
+fn restart() -> Element(Message) {
+  h.button(
+    [
+      event.on_click(types.ClientRequestRestart),
+      a.class(
+        tw_classes([
+          "bg-red-500/80", "absolute top-0 right-0", "hover:bg-red-700",
+          "active:bg-red-700", "text-white", "font-bold", "py-1", "px-2",
+          "rounded-bl-lg",
+        ]),
+      ),
+    ],
+    [h.text("Restart")],
+  )
+}
+
 // Board, where all pieces and gameplay live
 fn board(model: Model) -> Element(Message) {
   let pieces =
     dict.to_list(model.pieces)
+    |> list.sort(fn(x, y) { int.compare(x.1.z, y.1.z) })
+  let render_pieces =
+    pieces
     |> list.map(fn(x) {
       let #(p, l) = x
-      #("b-" <> string.inspect(p), #(piece_board(p, l, model.selected_piece), l))
+      #(string.inspect(p), piece_board(p, l, model.selected_piece))
     })
   let indicators =
     model.indicators
-    |> list.map(fn(l) { #(string.inspect(l), #(indicator(l), l)) })
-  let all_elements =
-    [pieces, indicators]
-    |> list.flatten()
-    |> list.sort(fn(x, y) { int.compare(x.1.1.z, y.1.1.z) })
-    |> list.map(pair.map_second(_, pair.first))
+    |> list.map(indicator)
   let coords =
     pieces
-    |> list.map(pair.second)
     |> list.map(pair.second)
     |> list.map(hex_coordinate)
   let dist_center_x =
@@ -104,6 +119,19 @@ fn board(model: Model) -> Element(Message) {
     Ok(y) if y >. 75.0 -> "md:scale-250"
     _ -> "md:scale-300"
   }
+  let hex_style =
+    a.class(
+      tw_classes([
+        // Place (0,0) in the middle of the board
+        "translate-x-[50vw]",
+        "translate-y-[40vh]",
+        phone_scale,
+        laptop_scale,
+        "transition duration-150",
+        "will-change-auto",
+      ]),
+    )
+
   svg.svg(
     [
       a.class("w-full h-full duration-200"),
@@ -113,20 +141,10 @@ fn board(model: Model) -> Element(Message) {
         "http://www.w3.org/2000/svg",
         "g",
         // svg.g(
-        [
-          a.class(
-            tw_classes([
-              // Place (0,0) in the middle of the board
-              "translate-x-[50vw]",
-              "translate-y-[40vh]",
-              phone_scale,
-              laptop_scale,
-              "transition duration-150",
-            ]),
-          ),
-        ],
-        all_elements,
+        [hex_style],
+        render_pieces,
       ),
+      svg.g([hex_style], indicators),
     ],
   )
 }
@@ -218,8 +236,7 @@ fn piece_style(piece: Piece, indicator_piece: Option(Piece)) -> String {
     "origin-center",
     "[transform-box:fill-box]",
     "transition duration-200",
-    // "will-change-transform",
-  // "transition duration-200",
+    "will-change-auto",
   ])
 }
 
@@ -234,6 +251,7 @@ fn indicator(location: Location) -> Element(Message) {
       tw_classes([
         "fill-blue-200/50",
         "stroke-blue-200",
+        "[transform-box:fill-box]",
         "stroke-2",
         "origin-center",
       ]),
@@ -257,11 +275,11 @@ fn hex_coordinate(location: Location) -> #(Float, Float) {
   let z = int.to_float(location.z)
   let scale = 20.0
   let hex_x =
-    x /. 2.0 *. sqrt3 +. z *. 0.07
+    x /. 2.0 *. sqrt3 +. z *. 0.09
     |> float.multiply(scale)
     |> float.to_precision(2)
   let hex_y =
-    y +. x /. 2.0 +. z *. 0.12
+    y +. x /. 2.0 +. z *. 0.14
     |> float.multiply(scale)
     |> float.negate
     |> float.to_precision(2)

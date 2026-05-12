@@ -4,8 +4,9 @@ import gleam/option.{None, Some}
 import lustre/effect.{type Effect}
 import mvu/types.{
   type Location, type Message, type Model, ClientClickBackground,
-  ClientClickIndicator, ClientClickPiece, Model, Player, ServerInitClient,
-  ServerMovePiece, ServerSayHello, ServerShowIndicators, Spectator,
+  ClientClickIndicator, ClientClickPiece, ClientRequestRestart, Model, Player,
+  ServerInitClient, ServerMovePiece, ServerSayHello, ServerShowIndicators,
+  Spectator,
 }
 import server
 
@@ -65,6 +66,9 @@ pub fn update(model: Model, message: Message) -> #(Model, Effect(Message)) {
     ServerInitClient(client_role:, piece_locations:, current_player:) -> {
       let pieces = dict.from_list(piece_locations)
       #(Model(..model, pieces:, client_role:, current_player:), effect.none())
+    }
+    ClientRequestRestart -> {
+      #(model, server.restart())
     }
   }
 }
