@@ -5,3 +5,4 @@ tmp/
 gleam-frontend/build
 gleam-frontend/dist
 gleam-frontend/.lustre
+backend/bin

@@ -5,7 +5,7 @@ import gleam/dict
 import gleam/float
 import gleam/int
 import gleam/list
-import gleam/option.{type Option, None, Some}
+import gleam/option.{None, Some}
 import gleam/pair
 import gleam/string
 import lustre/attribute.{type Attribute} as a
@@ -87,7 +87,7 @@ fn board(model: Model) -> Element(Message) {
     pieces
     |> list.map(fn(x) {
       let #(p, l) = x
-      #(string.inspect(p), piece_board(p, l, model.selected_piece))
+      #(string.inspect(p), piece_board(p, l, model))
     })
   let indicators =
     model.indicators
@@ -127,8 +127,8 @@ fn board(model: Model) -> Element(Message) {
         "translate-y-[40vh]",
         phone_scale,
         laptop_scale,
-        "transition duration-150",
-        "will-change-auto",
+        "transition duration-200",
+        "will-change-transform",
       ]),
     )
 
@@ -160,7 +160,7 @@ fn stock(model: Model, player: Player, placement: String) -> Element(Message) {
     |> list.filter(is_in_stock)
     |> list.map(fn(x) {
       let #(p, c) = x
-      piece_stock(p, c, model.selected_piece)
+      piece_stock(p, c, model)
     })
   let background = case Some(player) == model.current_player {
     True -> "bg-lime-100"
@@ -171,7 +171,10 @@ fn stock(model: Model, player: Player, placement: String) -> Element(Message) {
       a.class(tw_classes(["fixed", placement, "w-full", "h-20", background])),
     ],
     [
-      svg.g([a.class("translate-x-1/2 translate-y-5 scale-200")], stock_pieces),
+      svg.g(
+        [a.class("translate-x-[50vw] translate-y-5 scale-200")],
+        stock_pieces,
+      ),
     ],
   )
 }
@@ -180,9 +183,9 @@ fn stock(model: Model, player: Player, placement: String) -> Element(Message) {
 fn piece_board(
   piece: Piece,
   location: Location,
-  selected_piece: Option(Piece),
+  model: Model,
 ) -> Element(Message) {
-  let style = piece_style(piece, selected_piece)
+  let style = piece_style(piece, model)
   // Old CSS colors:
   // orange, mediumpurple, indianred, darkseagreen, cornflowerblue
   svg.path([
@@ -191,7 +194,8 @@ fn piece_board(
     a.class(
       tw_classes([
         style,
-        // NOTE: Disable for now, before dom-update stuff is fixed
+        "transition duration-200",
+        "will-change-transform",
       ]),
     ),
     a.attribute("d", hexagon_path),
@@ -201,11 +205,11 @@ fn piece_board(
 fn piece_stock(
   piece: Piece,
   placement: #(Float, Float),
-  selected_piece: Option(Piece),
+  model: Model,
 ) -> Element(Message) {
   // Old CSS colors:
   // orange, mediumpurple, indianred, darkseagreen, cornflowerblue
-  let style = piece_style(piece, selected_piece)
+  let style = piece_style(piece, model)
   svg.path([
     event.on_click(ClientClickPiece(piece)) |> event.stop_propagation,
     place(placement),
@@ -214,7 +218,7 @@ fn piece_stock(
   ])
 }
 
-fn piece_style(piece: Piece, indicator_piece: Option(Piece)) -> String {
+fn piece_style(piece: Piece, model: Model) -> String {
   let #(inactive_fill, active_fill) = case piece.player {
     Player1 -> #("fill-neutral-700", "fill-neutral-950")
     Player2 -> #("fill-neutral-50", "fill-neutral-200")
@@ -226,17 +230,23 @@ fn piece_style(piece: Piece, indicator_piece: Option(Piece)) -> String {
     Green1(_) | Green2(_) | Green3(_) -> #("stroke-lime-500", "stroke-lime-700")
     Blue1(_) | Blue2(_) | Blue3(_) -> #("stroke-sky-600", "stroke-sky-800")
   }
-  let style = case indicator_piece {
-    Some(p) if p == piece -> tw_classes([active_fill, active_stroke])
-    _ -> tw_classes([inactive_fill, inactive_stroke])
+  let style = case piece.player, model.client_role {
+    p, Player(q) if p == q && Some(p) == model.current_player ->
+      tw_classes([
+        inactive_fill,
+        inactive_stroke,
+        "hover:" <> active_fill,
+        "active:" <> active_fill,
+        "hover:" <> active_stroke,
+        "active:" <> active_stroke,
+      ])
+    _, _ -> tw_classes([inactive_fill, inactive_stroke])
   }
   tw_classes([
     style,
     "stroke-2",
     "origin-center",
     "[transform-box:fill-box]",
-    "transition duration-200",
-    "will-change-auto",
   ])
 }
 

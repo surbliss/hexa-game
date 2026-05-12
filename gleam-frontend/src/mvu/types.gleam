@@ -8,7 +8,6 @@ pub type Model {
   Model(
     pieces: Dict(Piece, Location),
     indicators: List(Location),
-    selected_piece: Option(Piece),
     current_player: Option(Player),
     // None when not connected yet, or game over
     client_role: ClientRole,

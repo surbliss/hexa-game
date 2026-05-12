@@ -1,10 +1,10 @@
 import gleam/dict
 import gleam/list
-import gleam/option.{None, Some}
+import gleam/option.{None}
 import lustre/effect.{type Effect}
 import mvu/types.{
   type Location, type Message, type Model, ClientClickBackground,
-  ClientClickIndicator, ClientClickPiece, ClientRequestRestart, Model, Player,
+  ClientClickIndicator, ClientClickPiece, ClientRequestRestart, Model,
   ServerInitClient, ServerMovePiece, ServerSayHello, ServerShowIndicators,
   Spectator,
 }
@@ -15,7 +15,6 @@ pub fn init(_args) {
     Model(
       pieces: dict.new(),
       indicators: [],
-      selected_piece: None,
       current_player: None,
       client_role: Spectator,
       // Default until info from server,
@@ -27,22 +26,14 @@ pub fn init(_args) {
 pub fn update(model: Model, message: Message) -> #(Model, Effect(Message)) {
   case message {
     ClientClickPiece(p) -> {
-      let selected_piece = case model.client_role {
-        Player(x) if p.player == x && model.current_player == Some(x) -> Some(p)
-        Spectator -> None
-        _ -> None
-      }
-      #(Model(..model, selected_piece:), server.click_piece(p))
+      #(model, server.click_piece(p))
     }
     ClientClickIndicator(l) -> {
       let assert Ok(i) = indicator_index(model.indicators, l)
-      #(
-        Model(..model, indicators: [], selected_piece: None),
-        server.click_indicator(i),
-      )
+      #(Model(..model, indicators: []), server.click_indicator(i))
     }
     ClientClickBackground -> {
-      #(Model(..model, indicators: [], selected_piece: None), effect.none())
+      #(Model(..model, indicators: []), effect.none())
     }
     ServerSayHello -> {
       echo "Hello server!"
