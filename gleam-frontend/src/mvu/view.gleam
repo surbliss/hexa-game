@@ -11,13 +11,13 @@ import gleam/string
 import lustre/attribute.{type Attribute} as a
 import lustre/element.{type Element}
 import lustre/element/html as h
+import lustre/element/keyed
 import lustre/element/svg
 import lustre/event
 import mvu/types.{
-  type ClientRole, type Location, type Message, type Model, type Piece,
-  type Player, Blue1, Blue2, Blue3, ClientClickIndicator, ClientClickPiece,
-  Green1, Green2, Green3, Orange, Player, Player1, Player2, Purple1, Purple2,
-  Red1, Red2, Spectator,
+  type Location, type Message, type Model, type Piece, type Player, Blue1, Blue2,
+  Blue3, ClientClickIndicator, ClientClickPiece, Green1, Green2, Green3, Orange,
+  Player, Player1, Player2, Purple1, Purple2, Red1, Red2, Spectator,
 }
 
 //-------------------------------------------------
@@ -26,9 +26,8 @@ import mvu/types.{
 
 pub fn view(model: Model) -> Element(Message) {
   let background = case model.client_role {
-    Player(Player1) -> "bg-indigo-50"
-    Player(Player2) -> "bg-orange-100"
-    Spectator -> "bg-mauve-500"
+    Player(_) -> "bg-orange-100"
+    Spectator -> "bg-mauve-200"
   }
   let elements = case model.client_role {
     // TODO: Rename the stock-functions
@@ -69,69 +68,70 @@ fn board(model: Model) -> Element(Message) {
     dict.to_list(model.pieces)
     |> list.map(fn(x) {
       let #(p, l) = x
-      #(piece_board(p, l, model.selected_piece), l)
+      #(string.inspect(p), #(piece_board(p, l, model.selected_piece), l))
     })
-  let indicators = model.indicators |> list.map(fn(l) { #(indicator(l), l) })
+  let indicators =
+    model.indicators
+    |> list.map(fn(l) { #(string.inspect(l), #(indicator(l), l)) })
   let all_elements =
     [pieces, indicators]
     |> list.flatten()
-    |> list.sort(fn(x, y) { int.compare(x.1.z, y.1.z) })
+    |> list.sort(fn(x, y) { int.compare(x.1.1.z, y.1.1.z) })
+    |> list.map(pair.map_second(_, pair.first))
+  let coords =
+    pieces
+    |> list.map(pair.second)
+    |> list.map(pair.second)
+    |> list.map(hex_coordinate)
+  let dist_center_x =
+    coords
     |> list.map(pair.first)
+    |> list.map(float.absolute_value)
+    |> list.max(float.compare)
+  let dist_center_y =
+    coords
+    |> list.map(pair.second)
+    |> list.map(float.absolute_value)
+    |> list.max(float.compare)
+
+  let phone_scale = case dist_center_x, dist_center_y {
+    Ok(x), Ok(y) if x >. 80.0 || y >. 125.0 -> "scale-150"
+    Ok(x), Ok(y) if x >. 60.0 || y >. 80.0 -> "scale-200"
+    _, _ -> "scale-250"
+  }
+  let laptop_scale = case dist_center_y {
+    Ok(y) if y >. 200.0 -> "md:scale-150"
+    Ok(y) if y >. 150.0 -> "md:scale-200"
+    Ok(y) if y >. 75.0 -> "md:scale-250"
+    _ -> "md:scale-300"
+  }
   svg.svg(
     [
-      a.class("w-full h-full"),
+      a.class("w-full h-full duration-200"),
     ],
     [
-      svg.g(
-        // Place (0,0) in the middle of the board
+      keyed.namespaced(
+        "http://www.w3.org/2000/svg",
+        "g",
+        // svg.g(
         [
           a.class(
-            "translate-x-[50vw] translate-y-[50vh] scale-200 md:scale-300",
+            tw_classes([
+              // Place (0,0) in the middle of the board
+              "translate-x-[50vw]",
+              "translate-y-[40vh]",
+              phone_scale,
+              laptop_scale,
+              "will-change-transform",
+              "transition duration-150",
+              "transition-normal",
+            ]),
           ),
         ],
         all_elements,
       ),
     ],
   )
-}
-
-// Stock for unplaced pieces
-fn stock_top(model: Model) -> Element(Message) {
-  let is_in_stock = fn(x: #(Piece, any)) {
-    dict.has_key(model.pieces, x.0) |> bool.negate
-  }
-  let placements = list.map(stock_x_z, stock_coordinate)
-  let stock_pieces =
-    all_pieces(Player2) |> list.zip(placements) |> list.filter(is_in_stock)
-  svg.svg([a.class("fixed top-0 w-full h-20 bg-olive-200")], [
-    svg.g(
-      [a.class("translate-x-1/2 translate-y-5 scale-200")],
-      list.flatten([
-        list.map(stock_pieces, fn(x) {
-          let #(p, c) = x
-          piece_stock(p, c, model.selected_piece)
-        }),
-      ]),
-    ),
-  ])
-}
-
-fn stock_bottom(model: Model) -> Element(Message) {
-  let is_in_stock = fn(x: #(Piece, any)) {
-    dict.has_key(model.pieces, x.0) |> bool.negate
-  }
-  let placements = list.map(stock_x_z, stock_coordinate)
-  let stock_pieces =
-    all_pieces(Player1)
-    |> list.zip(placements)
-    |> list.filter(is_in_stock)
-    |> list.map(fn(x) {
-      let #(p, c) = x
-      piece_stock(p, c, model.selected_piece)
-    })
-  svg.svg([a.class("fixed bottom-0 w-full h-20 bg-olive-200")], [
-    svg.g([a.class("translate-x-1/2 translate-y-5 scale-200")], stock_pieces),
-  ])
 }
 
 fn stock(model: Model, player: Player, placement: String) -> Element(Message) {
@@ -147,17 +147,13 @@ fn stock(model: Model, player: Player, placement: String) -> Element(Message) {
       let #(p, c) = x
       piece_stock(p, c, model.selected_piece)
     })
+  let background = case player == model.current_player {
+    True -> "bg-lime-100"
+    False -> "bg-olive-500"
+  }
   svg.svg(
     [
-      a.class(
-        tw_classes([
-          "fixed",
-          placement,
-          "w-full",
-          "h-20",
-          "bg-olive-200",
-        ]),
-      ),
+      a.class(tw_classes(["fixed", placement, "w-full", "h-20", background])),
     ],
     [
       svg.g([a.class("translate-x-1/2 translate-y-5 scale-200")], stock_pieces),
@@ -224,6 +220,8 @@ fn piece_style(piece: Piece, indicator_piece: Option(Piece)) -> String {
     "stroke-2",
     "origin-center",
     "[transform-box:fill-box]",
+    "transition duration-200",
+    "will-change-transform",
     // "transition duration-200",
   ])
 }
