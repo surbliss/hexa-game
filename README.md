@@ -1,24 +1,30 @@
-# Hexagame
-A work-in-progress Hive clone for local multiplayer over LAN.
-
-Inspired by the Hive board game by Gen42. Not affiliated with or endorsed by Gen42.
+# Hexa-game
+A clone of the Hive boardgame by Gen42, for local multiplayer over LAN.
+Not affiliated with or endorsed by Gen42. Rules can be found at https://hivegame.com/download/rules.pdf.
 
 ## Stack
-- Frontend: Vanilla JS (SVG)
-- Backend: Haskell (websockets)
+- **Backend:** Haskell (websockets)
+- **Frontend:** Gleam (Lustre)
+- **Legacy frontend:** Vanilla JS/SVG (no longer compatible with current backend)
 
 ## Running
 Start the backend:
 ```sh
 cabal run
 ```
-
-Start the frontend dev server:
+Build and serve the Gleam frontend:
 ```sh
-npx live-server static
+cd gleam-frontend
+gleam run -m lustre/dev start
 ```
 
-Then open `http://YOUR_LAN_IP:8080` on your devices. Requires ports 8080 and 9000 open on the host machine.
+Then open `http://localhost:8080` on the two devices you want to play against each other (or two browser-tabs on one device).
+Requires ports 8080 and 9000 open on the host machine.
 
 ## Status
-Early development. Not playable yet.
+Gameplay is functional. Following is not implemented yet, but planned:
+- Skip players turn if no legal moves (as described in the rules)
+- Implement the expansion-pieces (Ladybug, Mosquito, Pillbug)
+- Create a nix build-script to serve the project properly, rather than through dev-hosting
+- Add assets with pictures
+- Add a popup when game ends
