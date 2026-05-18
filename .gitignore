@@ -3,6 +3,8 @@
 dist-newstyle/
 tmp/
 gleam-frontend/build
-gleam-frontend/dist
+# Also commit these, until a more sophisticated nix build command
+# gleam-frontend/dist
 gleam-frontend/.lustre
 backend/bin
+result

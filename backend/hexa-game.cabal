@@ -16,7 +16,7 @@ build-type: Simple
 common warnings
   ghc-options: -Wall
 
-executable hexa-game
+executable hexa-game-backend
   import: warnings
   main-is: Main.hs
   other-modules:

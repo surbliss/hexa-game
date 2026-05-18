@@ -35,10 +35,6 @@
         name = "HIVEMIND_ROOT";
         eval = "$PRJ_ROOT";
       }
-      {
-        name = "HIVEMIND_ROOT";
-        eval = "$PRJ_ROOT";
-      }
     ];
 
     commands = [
@@ -73,4 +69,12 @@
       config.devShells.other
     ];
   };
+
+  packages.backend =
+    config.haskellProjects.haskell.outputs.packages.hexa-game.package;
+  packages.frontend = pkgs.runCommand "hexa-game-frontend" { } ''
+    mkdir -p $out/
+    cp ${./gleam-frontend/dist}/* $out/
+  '';
+
 }
