@@ -19,7 +19,7 @@ pub fn init(_args) {
       client_role: Spectator,
       // Default until info from server,
     )
-  let effect = server.connect("ws://192.168.0.100:9000")
+  let effect = server.connect(9000)
   #(model, effect)
 }
 
@@ -35,6 +35,7 @@ pub fn update(model: Model, message: Message) -> #(Model, Effect(Message)) {
     ClientClickBackground -> {
       #(Model(..model, indicators: []), effect.none())
     }
+    // Solely a message for debuggin connection, so fine to leave 'echo'
     ServerSayHello -> {
       echo "Hello server!"
       #(model, effect.none())

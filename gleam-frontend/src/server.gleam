@@ -11,9 +11,9 @@ import mvu/types.{
 }
 
 /// Connect to websocket, use inside 'init'
-pub fn connect(url: String) -> Effect(Message) {
+pub fn connect(port: Int) -> Effect(Message) {
   use dispatch <- effect.from
-  use msg <- ffi_connect(url, fn() { ffi_send("connect new") })
+  use msg <- ffi_connect(port, fn() { ffi_send("connect new") })
   case parse_message(msg) {
     Ok(m) -> dispatch(m)
     Error(e) -> panic as { "Invalid server-message: " <> e }
@@ -163,7 +163,7 @@ fn parse_turn(text: String) -> Result(Option(Player), Nil) {
 
 @external(javascript, "./ffi.js", "connect")
 fn ffi_connect(
-  url: String,
+  port: Int,
   open_callback: fn() -> Nil,
   message_callback: fn(String) -> any,
 ) -> Nil
